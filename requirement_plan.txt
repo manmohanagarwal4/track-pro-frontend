@@ -1,0 +1,2250 @@
+# Flutter GPS Tracker App — Frontend-Only Production-Quality Prototype
+
+## ROLE
+
+You are a senior Flutter developer, mobile UX/UI designer, Flutter architect, and IoT/GPS tracking application specialist.
+
+Build a **fully functional, polished Flutter mobile application for a GPS tracking platform**.
+
+This is the **frontend/mobile application phase only**.
+
+### CRITICAL REQUIREMENT
+
+**DO NOT integrate any backend API, REST API, WebSocket, MQTT, Firebase backend, database server, or external GPS tracking service.**
+
+For this phase, **everything must work using local dummy/mock data**.
+
+The application should look and behave like a real production GPS tracking application, even though all data is simulated locally.
+
+I will create a separate backend/API development prompt later.
+
+---
+
+# 1. PRODUCT VISION
+
+The application is a universal GPS tracker management application.
+
+The physical GPS tracker hardware will eventually be used for:
+
+- Pet tracking
+- Key/item tracking
+- Personal tracking
+- Child/elderly tracking
+- Vehicle tracking
+- Taxi/cab tracking
+- Logistics
+- Fleet management
+- Delivery vehicles
+- Commercial vehicles
+- Asset tracking
+
+Therefore, DO NOT design the application only as a pet tracker.
+
+The application must be designed as a **general-purpose GPS tracking platform**.
+
+The same Flutter application should support both:
+
+### Personal users
+
+```text
+Pet
+Keys
+Personal Vehicle
+Person
+Personal Asset
+```
+
+### Business users
+
+```text
+Taxi
+Truck
+Delivery Vehicle
+Fleet
+Logistics Asset
+Commercial Vehicle
+Equipment
+```
+
+---
+
+# 2. PHASE 1 SCOPE
+
+The application must be completely functional using dummy data.
+
+### DO BUILD
+
+- Complete Flutter UI
+- Navigation
+- Authentication screens
+- Dashboard
+- Map
+- Device management
+- Asset management
+- Live tracking simulation
+- Location history
+- Trip history
+- Geofences
+- Alerts
+- Notifications
+- Fleet management
+- Driver management
+- Device details
+- Device settings
+- Sharing UI
+- Profile
+- Settings
+- Dark mode
+- Responsive design
+- Search
+- Filtering
+- Sorting
+- Local state
+- Mock data
+- Simulated realtime GPS movement
+- Loading states
+- Error states
+- Empty states
+- Offline simulation
+- Animations
+- Polished UX
+
+### DO NOT BUILD
+
+Do not implement:
+
+- Backend API
+- REST API integration
+- WebSocket server
+- MQTT
+- Firebase backend
+- Cloud database
+- Real GPS hardware communication
+- Production authentication server
+- Production push notification service
+- Real-time server
+- Payment integration
+
+Everything should use local mock services/data.
+
+---
+
+# 3. IMPORTANT ARCHITECTURE
+
+Even though there is no backend yet, structure the code so the dummy implementation can later be replaced by real APIs without rewriting the UI.
+
+Use:
+
+```text
+UI
+ ↓
+State Management
+ ↓
+Repository Interface
+ ↓
+Mock Repository
+ ↓
+Local Dummy Data
+```
+
+For example:
+
+```dart
+abstract class TrackingRepository {
+  Future<List<TrackerDevice>> getDevices();
+
+  Future<TrackerDevice?> getDevice(String id);
+
+  Future<List<DeviceLocation>> getLocationHistory(
+    String deviceId,
+    DateTime start,
+    DateTime end,
+  );
+}
+```
+
+Then:
+
+```dart
+class MockTrackingRepository implements TrackingRepository {
+   ...
+}
+```
+
+The UI must only depend on the repository interface.
+
+Later I should be able to create:
+
+```dart
+ApiTrackingRepository
+```
+
+without changing the UI.
+
+---
+
+# 4. USE LOCAL MOCK DATA
+
+Create a proper mock-data layer.
+
+Suggested structure:
+
+```text
+lib/
+├── core/
+│   ├── theme/
+│   ├── routing/
+│   ├── constants/
+│   ├── utils/
+│   └── mock/
+│
+├── data/
+│   ├── models/
+│   ├── repositories/
+│   └── mock/
+│
+├── features/
+│   ├── auth/
+│   ├── dashboard/
+│   ├── devices/
+│   ├── assets/
+│   ├── tracking/
+│   ├── trips/
+│   ├── geofences/
+│   ├── alerts/
+│   ├── fleet/
+│   ├── drivers/
+│   ├── notifications/
+│   ├── sharing/
+│   └── settings/
+│
+└── main.dart
+```
+
+Keep mock data separate from UI.
+
+---
+
+# 5. MOCK USER
+
+Create a default demo user.
+
+Example:
+
+```text
+Name:
+Manmohan
+
+Email:
+demo@example.com
+
+Account Type:
+Business
+```
+
+The login screen should accept any reasonable demo credentials or provide a:
+
+```text
+Continue with Demo Account
+```
+
+button.
+
+The application should not require a real server.
+
+---
+
+# 6. MOCK DEVICES
+
+Create realistic demo devices.
+
+At minimum create:
+
+### Pet
+
+```text
+Device:
+PET-001
+
+Name:
+Bruno
+
+Type:
+Pet
+
+Status:
+Moving
+
+Battery:
+72%
+
+Speed:
+8 km/h
+```
+
+### Personal Keys
+
+```text
+Device:
+KEY-001
+
+Name:
+House Keys
+
+Type:
+Key
+
+Status:
+Online / Stationary
+
+Battery:
+91%
+```
+
+### Car
+
+```text
+Device:
+CAR-001
+
+Name:
+Car 01
+
+Type:
+Vehicle
+
+Registration:
+DL01AB1234
+
+Status:
+Moving
+
+Battery:
+84%
+
+Speed:
+52 km/h
+```
+
+### Taxi
+
+```text
+Device:
+TAXI-001
+
+Name:
+Taxi 21
+
+Type:
+Taxi
+
+Registration:
+DL01TX0021
+
+Driver:
+Rahul Sharma
+
+Status:
+Moving
+
+Speed:
+63 km/h
+```
+
+### Truck
+
+```text
+Device:
+TRUCK-001
+
+Name:
+Truck 21
+
+Type:
+Logistics
+
+Registration:
+UP14TR4521
+
+Driver:
+Amit Kumar
+
+Status:
+Moving
+
+Speed:
+68 km/h
+```
+
+### Delivery Van
+
+```text
+Device:
+VAN-001
+
+Name:
+Delivery Van 07
+
+Type:
+Delivery
+
+Status:
+Idle
+```
+
+### Offline Device
+
+```text
+Device:
+DEV-009
+
+Name:
+Truck 09
+
+Status:
+Offline
+
+Last Seen:
+18 minutes ago
+```
+
+Use realistic Indian locations.
+
+For example:
+
+```text
+Delhi
+Noida
+Ghaziabad
+Gurgaon
+Bulandshahr
+```
+
+---
+
+# 7. SIMULATED REAL-TIME GPS
+
+This is one of the most important features.
+
+The app must simulate live GPS movement.
+
+Do NOT simply show static markers.
+
+Create a local GPS simulation engine.
+
+Example:
+
+```text
+Truck 21
+Delhi
+ ↓
+Ghaziabad
+ ↓
+Noida
+ ↓
+Delhi
+```
+
+Every few seconds update:
+
+```text
+latitude
+longitude
+speed
+heading
+timestamp
+```
+
+The marker should move smoothly on the map.
+
+Use an appropriate timer/stream mechanism.
+
+For example:
+
+```dart
+Stream<DeviceLocation>
+```
+
+The map marker should animate between coordinates rather than teleporting.
+
+---
+
+# 8. LIVE TRACKING SIMULATION
+
+Provide a toggle:
+
+```text
+Live Simulation
+ON / OFF
+```
+
+When enabled:
+
+- Devices move automatically.
+- Speed changes.
+- Heading changes.
+- Location updates.
+- Last updated time changes.
+- Trip distance increases.
+- Device status changes where appropriate.
+
+Example:
+
+```text
+Truck 21
+
+68 km/h
+↓
+71 km/h
+↓
+65 km/h
+↓
+73 km/h
+```
+
+The dashboard should update automatically.
+
+---
+
+# 9. MAP
+
+The map is the primary feature of the application.
+
+Use a suitable Flutter map package.
+
+If an external map API key is required, structure the application so the map integration can be configured later.
+
+For development, ensure the project remains runnable even if the real map provider is unavailable.
+
+The map should support:
+
+- Multiple markers
+- Marker clustering
+- Custom markers
+- Device selection
+- Zoom
+- Pan
+- Center on device
+- Follow device
+- Route polylines
+- Geofences
+- Current location
+- Map controls
+
+---
+
+# 10. CUSTOM DEVICE MARKERS
+
+Use different markers for:
+
+```text
+Pet       → pet icon
+Key       → key icon
+Vehicle   → car icon
+Taxi      → taxi icon
+Truck     → truck icon
+Delivery  → van icon
+Person    → person icon
+Generic   → tracker icon
+```
+
+Status should be visually obvious.
+
+Example:
+
+```text
+Green  = Moving/Online
+Blue   = Stationary
+Gray   = Offline
+Orange = Warning
+Red    = Emergency
+```
+
+---
+
+# 11. DASHBOARD
+
+Create a premium dashboard.
+
+Top:
+
+```text
+Good Morning, Manmohan
+
+All systems operational
+```
+
+Then summary cards:
+
+```text
+Total Devices     8
+Online             7
+Moving             4
+Alerts             2
+```
+
+Then:
+
+```text
+LIVE TRACKING MAP
+```
+
+Then:
+
+```text
+Active Devices
+```
+
+Example:
+
+```text
+🚚 Truck 21
+Moving · 68 km/h
+
+🚕 Taxi 21
+Moving · 63 km/h
+
+🐕 Bruno
+Moving · 8 km/h
+
+🔑 House Keys
+Stationary
+```
+
+---
+
+# 12. DEVICE LIST
+
+Create a complete device-management screen.
+
+Features:
+
+- Search
+- Filter
+- Sort
+- Device cards
+- Status
+- Battery
+- Signal
+- Last update
+- Asset type
+
+Filters:
+
+```text
+All
+Online
+Offline
+Moving
+Idle
+Alert
+```
+
+Asset filters:
+
+```text
+All
+Pet
+Vehicle
+Taxi
+Truck
+Key
+Person
+Delivery
+Other
+```
+
+---
+
+# 13. DEVICE DETAILS
+
+When selecting a device show:
+
+```text
+Truck 21
+
+● Moving
+
+68 km/h
+Heading: NE
+
+Battery
+84%
+
+GPS
+Excellent
+
+Network
+Good
+
+Last Updated
+8 seconds ago
+```
+
+Then:
+
+```text
+Current Location
+Delhi, India
+```
+
+Actions:
+
+```text
+Track Live
+History
+Trips
+Geofence
+Settings
+Share
+```
+
+---
+
+# 14. TELEMETRY
+
+Show realistic telemetry.
+
+Example:
+
+```text
+Speed
+68 km/h
+
+Heading
+NE
+
+Altitude
+214 m
+
+GPS Accuracy
+4 m
+
+Satellites
+14
+
+Battery
+84%
+
+Network
+Excellent
+
+Temperature
+29°C
+
+Motion
+Detected
+
+Ignition
+ON
+```
+
+Different device types can have different telemetry.
+
+For example:
+
+Pet:
+
+```text
+Motion
+Temperature
+Battery
+GPS
+```
+
+Vehicle:
+
+```text
+Speed
+Ignition
+Battery
+GPS
+Temperature
+```
+
+Truck:
+
+```text
+Speed
+Ignition
+Fuel
+Battery
+GPS
+Temperature
+```
+
+Use mock values.
+
+---
+
+# 15. LOCATION HISTORY
+
+Create a beautiful history screen.
+
+Date selector:
+
+```text
+Today
+Yesterday
+Last 7 Days
+Custom
+```
+
+Show:
+
+```text
+Route map
+
+Start
+End
+
+Distance
+124.6 km
+
+Duration
+3h 42m
+
+Average Speed
+42 km/h
+
+Maximum Speed
+81 km/h
+
+Stops
+6
+
+Idle Time
+38 min
+```
+
+Draw the route on the map.
+
+Use realistic generated route coordinates.
+
+---
+
+# 16. TRIP HISTORY
+
+Create trip cards.
+
+Example:
+
+```text
+Today
+
+08:32 AM → 10:14 AM
+
+Delhi
+→
+Noida
+
+Distance
+48.6 km
+
+Duration
+1h 42m
+```
+
+Clicking a trip opens:
+
+- Route
+- Start
+- End
+- Distance
+- Duration
+- Average speed
+- Maximum speed
+- Stops
+
+---
+
+# 17. GEOFENCES
+
+Allow the user to create dummy geofences locally.
+
+Types:
+
+```text
+Home
+Office
+Warehouse
+Restricted Area
+Customer Location
+```
+
+Create geofence UI:
+
+```text
+Create Geofence
+
+Name
+Home
+
+Type
+Circle
+
+Radius
+500 m
+
+Events
+
+☑ Enter
+☑ Exit
+
+[Save]
+```
+
+The geofence should actually appear on the map.
+
+Simulate enter/exit events based on device movement.
+
+---
+
+# 18. ALERTS
+
+Create a realistic alert center.
+
+Examples:
+
+```text
+🔴 Overspeed
+
+Truck 21 exceeded 80 km/h.
+
+94 km/h
+
+2 minutes ago
+```
+
+```text
+🟠 Geofence Exit
+
+Taxi 21 exited
+Office Zone.
+
+10 minutes ago
+```
+
+```text
+🔋 Low Battery
+
+Bruno battery below 20%.
+
+18 minutes ago
+```
+
+```text
+⚫ Device Offline
+
+Truck 09 has gone offline.
+
+25 minutes ago
+```
+
+Allow:
+
+- Mark read
+- Mark all read
+- Filter
+- Delete
+
+---
+
+# 19. NOTIFICATION CENTER
+
+Create a notification page.
+
+Categories:
+
+```text
+All
+Alerts
+System
+Devices
+Trips
+```
+
+Use local mock notifications.
+
+No Firebase is required.
+
+---
+
+# 20. FLEET DASHBOARD
+
+Business users should have a fleet dashboard.
+
+Display:
+
+```text
+Fleet Overview
+
+120 Vehicles
+
+74 Moving
+28 Idle
+12 Stopped
+6 Offline
+```
+
+For the demo, you can generate 20–50 mock vehicles to demonstrate scalability.
+
+Use:
+
+- Pagination
+- Filtering
+- Search
+- Map clustering
+
+Do NOT render thousands of widgets unnecessarily.
+
+---
+
+# 21. DRIVER MANAGEMENT
+
+Create a driver list.
+
+Example:
+
+```text
+Rahul Sharma
+
+Vehicle:
+Taxi 21
+
+Status:
+Driving
+
+Phone:
++91 XXXXX XXXXX
+
+Trips:
+12
+```
+
+Actions:
+
+```text
+View
+Assign Vehicle
+Unassign
+```
+
+Everything should work locally.
+
+---
+
+# 22. ASSET MANAGEMENT
+
+Separate:
+
+```text
+Device
+```
+
+from:
+
+```text
+Asset
+```
+
+Example:
+
+```text
+Device:
+TRK-001
+
+Assigned Asset:
+Truck 21
+```
+
+This is important.
+
+A physical GPS device may be reassigned from one asset to another.
+
+Support:
+
+```text
+Device
+→ Assign Asset
+→ Change Asset
+→ Unassign
+```
+
+---
+
+# 23. ADD DEVICE
+
+Create a fully functional local flow.
+
+```text
+Add Tracker
+
+Scan QR
+OR
+Enter Device ID
+```
+
+For demo:
+
+```text
+Device ID:
+DEMO-001
+```
+
+Then:
+
+```text
+Select Asset Type
+
+Pet
+Vehicle
+Taxi
+Truck
+Person
+Key
+Other
+```
+
+Then:
+
+```text
+Asset Name
+```
+
+Then:
+
+```text
+Device Added Successfully
+```
+
+The new device must actually appear in the device list using local state.
+
+---
+
+# 24. EDIT DEVICE
+
+Allow:
+
+- Rename
+- Change asset
+- Change icon
+- Change tracking mode
+- Configure alerts
+- Remove device
+
+Changes must persist during the app session.
+
+---
+
+# 25. TRACKING MODES
+
+Create:
+
+```text
+Real Time
+Normal
+Power Saving
+Sleep
+Emergency
+```
+
+Changing the mode should visibly affect the simulated update interval.
+
+Example:
+
+```text
+Real Time
+2 seconds
+
+Normal
+5 seconds
+
+Power Saving
+15 seconds
+
+Emergency
+1 second
+```
+
+These are simulation values only.
+
+---
+
+# 26. EMERGENCY MODE
+
+Add an emergency action.
+
+When activated:
+
+```text
+EMERGENCY MODE
+
+Tracking frequency increased.
+
+Emergency alert generated.
+
+Device highlighted on map.
+```
+
+Show a red emergency status.
+
+Allow turning it off.
+
+---
+
+# 27. SHARING
+
+Create a local sharing flow.
+
+Example:
+
+```text
+Share Truck 21
+
+Permission:
+
+View only
+Live tracking
+History
+
+Duration:
+
+1 hour
+6 hours
+24 hours
+
+[Create Share Link]
+```
+
+Generate a fake share link.
+
+No real backend is required.
+
+Show:
+
+```text
+Share link created.
+```
+
+---
+
+# 28. PROFILE
+
+Create profile screen:
+
+```text
+Manmohan
+
+demo@example.com
+
+Personal / Business
+
+Devices
+8
+
+Organizations
+1
+```
+
+Options:
+
+```text
+Edit Profile
+Security
+Notifications
+Preferences
+Logout
+```
+
+---
+
+# 29. SETTINGS
+
+Implement:
+
+```text
+Account
+Notifications
+Map Settings
+Tracking Settings
+Units
+Appearance
+Security
+Privacy
+About
+```
+
+Appearance:
+
+```text
+Light
+Dark
+System
+```
+
+Units:
+
+```text
+Kilometers
+Miles
+```
+
+---
+
+# 30. DARK MODE
+
+The entire application must support:
+
+```text
+Light
+Dark
+System
+```
+
+Do not simply invert colors.
+
+Create a proper Material 3 theme.
+
+Maps, cards, dialogs, bottom sheets and text must all work correctly in dark mode.
+
+---
+
+# 31. UI/UX QUALITY
+
+The design should look like a modern premium commercial application.
+
+Reference design characteristics from modern:
+
+- Fleet management applications
+- Ride-sharing applications
+- IoT dashboards
+- GPS tracking applications
+- Premium consumer tracking applications
+
+But DO NOT copy another application's design.
+
+Use your own design system.
+
+The UI should feel:
+
+```text
+Premium
+Modern
+Clean
+Professional
+Fast
+Trustworthy
+```
+
+Avoid:
+
+```text
+Old-fashioned dashboards
+Too many borders
+Too many colors
+Cluttered screens
+Tiny text
+Huge empty spaces
+```
+
+---
+
+# 32. MOBILE-FIRST DESIGN
+
+Primary target:
+
+```text
+Android phone
+iPhone
+```
+
+Also support tablets.
+
+Use responsive layouts.
+
+---
+
+# 33. ANIMATIONS
+
+Use subtle animations for:
+
+- Page transitions
+- Device marker movement
+- Bottom sheets
+- Cards
+- Status changes
+- Loading
+- Success
+- Error
+- Device connection
+- Alerts
+
+Do not over-animate.
+
+---
+
+# 34. LOADING STATES
+
+Every asynchronous mock operation should have realistic loading states.
+
+Example:
+
+```text
+Loading devices...
+```
+
+Then:
+
+```text
+Devices loaded
+```
+
+---
+
+# 35. EMPTY STATES
+
+Examples:
+
+```text
+No devices found.
+
+Add your first tracker to start tracking.
+
+[Add Tracker]
+```
+
+---
+
+# 36. ERROR STATES
+
+Simulate occasional errors.
+
+Example:
+
+```text
+Unable to load device data.
+
+[Retry]
+```
+
+Retry should actually retry the mock operation.
+
+---
+
+# 37. OFFLINE SIMULATION
+
+Create a developer/demo toggle:
+
+```text
+Simulate Offline Mode
+```
+
+When enabled:
+
+- Show offline banner
+- Disable realtime updates
+- Show cached data
+- Show last synchronized time
+
+When disabled:
+
+```text
+Back Online
+Synchronizing...
+```
+
+Then resume simulation.
+
+---
+
+# 38. MOCK DATA ENGINE
+
+Create a robust local mock data engine.
+
+It should generate:
+
+### Devices
+
+At least 20 demo devices.
+
+### Locations
+
+Generate realistic coordinates.
+
+### Trips
+
+Generate historical trips.
+
+### Alerts
+
+Generate different alert types.
+
+### Drivers
+
+Generate drivers.
+
+### Geofences
+
+Generate demo geofences.
+
+### Telemetry
+
+Generate changing values.
+
+Keep this data in one dedicated mock-data layer.
+
+---
+
+# 39. LOCAL STATE
+
+Since there is no backend, changes should persist during the application session.
+
+For example:
+
+If the user:
+
+```text
+Adds device
+Renames device
+Creates geofence
+Marks alert read
+Changes settings
+Assigns driver
+```
+
+the UI must update immediately.
+
+Use proper state management.
+
+Recommended:
+
+```text
+Riverpod
+```
+
+unless you have a strong technical reason to choose another solution.
+
+---
+
+# 40. LOCAL PERSISTENCE
+
+You may use local storage for the prototype so that data survives application restart.
+
+Recommended:
+
+```text
+SharedPreferences
+Hive
+Isar
+```
+
+Choose the most appropriate lightweight option.
+
+Do NOT build a complex database architecture for this phase.
+
+---
+
+# 41. MAP ABSTRACTION
+
+Keep map functionality behind an abstraction.
+
+Example:
+
+```dart
+abstract class MapService {
+  ...
+}
+```
+
+The map implementation should be replaceable later.
+
+Do not spread map-provider-specific logic across the application.
+
+---
+
+# 42. LOCATION SIMULATION ENGINE
+
+Create:
+
+```text
+LocationSimulationService
+```
+
+Responsibilities:
+
+```text
+Start simulation
+Stop simulation
+Pause simulation
+Resume simulation
+Generate coordinates
+Calculate speed
+Calculate heading
+Update device status
+Generate telemetry
+```
+
+Example:
+
+```dart
+class LocationSimulationService {
+  Stream<DeviceLocation> simulateDeviceMovement(
+    String deviceId,
+  );
+}
+```
+
+This will later be replaced or complemented by real backend location streams.
+
+---
+
+# 43. DISTANCE CALCULATION
+
+Implement real distance calculations between coordinates.
+
+Do not use random numbers for distance.
+
+Use the Haversine formula or an appropriate geographic calculation.
+
+Trips should calculate:
+
+```text
+Distance
+Average speed
+Maximum speed
+Duration
+```
+
+from the simulated data.
+
+---
+
+# 44. GEOFENCE CALCULATION
+
+Implement actual geographic calculations.
+
+When a simulated device crosses a geofence:
+
+Generate:
+
+```text
+ENTER
+EXIT
+```
+
+events.
+
+Do not simply display fake events disconnected from device movement.
+
+---
+
+# 45. DEVICE STATUS ENGINE
+
+Create centralized logic for:
+
+```text
+ONLINE
+OFFLINE
+MOVING
+IDLE
+STOPPED
+LOW_BATTERY
+NO_GPS
+NO_NETWORK
+EMERGENCY
+```
+
+Status should be calculated consistently throughout the app.
+
+---
+
+# 46. SEARCH AND FILTER
+
+Search must actually work.
+
+Search:
+
+```text
+Device name
+Device ID
+Asset name
+Vehicle number
+Driver
+Pet name
+```
+
+Filters must actually modify displayed results.
+
+---
+
+# 47. PERFORMANCE
+
+The application must remain smooth with:
+
+```text
+20 devices
+50 devices
+100 devices
+```
+
+in mock mode.
+
+Optimize:
+
+- Map markers
+- List rendering
+- State updates
+- Location streams
+- Animations
+
+Only update widgets that need updating.
+
+---
+
+# 48. NO API PLACEHOLDERS IN UI
+
+Do NOT create fake screens that say:
+
+```text
+API coming soon
+Backend required
+Feature unavailable
+```
+
+Instead, implement the feature locally with mock data.
+
+The user should feel like they are using a real tracking platform.
+
+---
+
+# 49. FUTURE BACKEND PREPARATION
+
+Although there is no backend now, maintain clean boundaries.
+
+For example:
+
+```text
+TrackingRepository
+      |
+      └── MockTrackingRepository
+```
+
+Later:
+
+```text
+TrackingRepository
+      |
+      └── ApiTrackingRepository
+```
+
+Similarly:
+
+```text
+AuthRepository
+      |
+      └── MockAuthRepository
+```
+
+Later:
+
+```text
+AuthRepository
+      |
+      └── ApiAuthRepository
+```
+
+Do not let mock data leak directly into widgets.
+
+---
+
+# 50. DO NOT OVERENGINEER BACKEND
+
+This phase is ONLY Flutter.
+
+Do not create:
+
+```text
+Node.js
+NestJS
+MongoDB
+PostgreSQL
+Prisma
+REST server
+WebSocket server
+MQTT broker
+```
+
+I will create the backend separately later.
+
+---
+
+# 51. PROJECT CONFIGURATION
+
+Create:
+
+```text
+.env.example
+```
+
+only if configuration is needed.
+
+Do not put real credentials into the repository.
+
+If map API configuration is required, clearly document:
+
+```text
+MAP_API_KEY=
+```
+
+but do not require a backend.
+
+---
+
+# 52. CODE ORGANIZATION
+
+Use feature-based architecture.
+
+Example:
+
+```text
+lib/features/tracking/
+
+presentation/
+data/
+domain/
+```
+
+Keep widgets small.
+
+Avoid giant files such as:
+
+```text
+dashboard.dart
+```
+
+with thousands of lines.
+
+Break screens into reusable components.
+
+---
+
+# 53. DESIGN SYSTEM
+
+Create centralized:
+
+```text
+AppColors
+AppTypography
+AppSpacing
+AppRadius
+AppShadows
+AppIcons
+AppTheme
+```
+
+Use these consistently.
+
+Do not scatter arbitrary:
+
+```dart
+Color(...)
+TextStyle(...)
+EdgeInsets(...)
+```
+
+throughout the application.
+
+---
+
+# 54. ICONS
+
+Use high-quality icons.
+
+Where appropriate use:
+
+```text
+Material Icons
+Lucide
+Font Awesome
+```
+
+Choose one consistent icon system.
+
+---
+
+# 55. APP NAVIGATION
+
+Use a scalable navigation structure.
+
+Consumer mode:
+
+```text
+Home
+Devices
+Map
+Alerts
+More
+```
+
+Business mode:
+
+```text
+Dashboard
+Fleet
+Map
+Trips
+Alerts
+More
+```
+
+Do not create two separate applications.
+
+The navigation should adapt according to account/workspace mode.
+
+---
+
+# 56. DEMO MODE
+
+Create a demo-mode indicator/settings.
+
+Example:
+
+```text
+DEMO MODE
+All locations and devices are simulated.
+```
+
+This should be visible in a subtle way, especially in Settings/About.
+
+---
+
+# 57. SAMPLE USER JOURNEY
+
+The following complete flow must work:
+
+```text
+Open App
+ ↓
+Splash
+ ↓
+Onboarding
+ ↓
+Demo Login
+ ↓
+Dashboard
+ ↓
+See devices
+ ↓
+Open Map
+ ↓
+Select Truck 21
+ ↓
+View live location
+ ↓
+Marker moves
+ ↓
+Open Device Details
+ ↓
+View telemetry
+ ↓
+Open History
+ ↓
+View route
+ ↓
+Open Trips
+ ↓
+Open Geofences
+ ↓
+Create Geofence
+ ↓
+Device enters/exits geofence
+ ↓
+Alert generated
+ ↓
+Open Alert
+ ↓
+Mark as read
+```
+
+Everything above must function locally.
+
+---
+
+# 58. ANOTHER USER JOURNEY
+
+Pet:
+
+```text
+Dashboard
+ ↓
+Add Device
+ ↓
+Pet
+ ↓
+Bruno
+ ↓
+Device added
+ ↓
+Open Bruno
+ ↓
+Live map
+ ↓
+Movement simulation
+ ↓
+Safe Zone
+ ↓
+Exit Safe Zone
+ ↓
+Alert
+```
+
+This should work without any API.
+
+---
+
+# 59. COMMERCIAL USER JOURNEY
+
+```text
+Demo Login
+ ↓
+Business Dashboard
+ ↓
+Fleet
+ ↓
+View vehicles
+ ↓
+Search Truck 21
+ ↓
+Open Truck
+ ↓
+View driver
+ ↓
+Live tracking
+ ↓
+Trip history
+ ↓
+Overspeed alert
+ ↓
+Geofence
+ ↓
+Driver assignment
+```
+
+Everything should be locally functional.
+
+---
+
+# 60. TESTING
+
+Create tests for:
+
+### Unit
+
+- Distance calculation
+- Speed calculation
+- Geofence detection
+- Device status
+- Trip calculation
+- Search/filter
+- Mock repository
+
+### Widget
+
+- Login
+- Dashboard
+- Device list
+- Device details
+- Alerts
+- Add device
+
+### Integration
+
+At least test:
+
+```text
+Login
+Add device
+Open map
+Open device
+View history
+Create geofence
+Generate alert
+```
+
+---
+
+# 61. FINAL VALIDATION
+
+Before finishing, run:
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+Fix all compilation errors and analyzer errors.
+
+Check:
+
+```text
+✓ No overflow
+✓ No broken navigation
+✓ No crashes
+✓ No null exceptions
+✓ Dark mode works
+✓ Light mode works
+✓ Device simulation works
+✓ Map works
+✓ Markers move
+✓ History works
+✓ Trips work
+✓ Geofences work
+✓ Alerts work
+✓ Search works
+✓ Filters work
+✓ Add device works
+✓ Edit device works
+✓ Delete device works
+✓ Fleet works
+✓ Driver assignment works
+✓ Offline mode works
+```
+
+---
+
+# 62. IMPORTANT: DO NOT STOP AT DESIGN
+
+I do NOT want only:
+
+- Wireframes
+- Static UI
+- Screenshots
+- Placeholder cards
+
+I want a **fully interactive Flutter prototype**.
+
+Every button should perform an action.
+
+Every list should contain realistic data.
+
+Every major screen should have working interactions.
+
+The map should simulate moving trackers.
+
+Geofences should interact with simulated movement.
+
+Alerts should be generated based on simulated events.
+
+Trips should contain realistic route data.
+
+Device changes should update the UI.
+
+---
+
+# 63. DO NOT ASK FOR BACKEND DETAILS
+
+Do not stop development because there is no backend.
+
+Use mock implementations.
+
+If you encounter a feature that normally requires a backend:
+
+```text
+Create an interface
++
+Create a mock implementation
++
+Connect the UI to the mock implementation
+```
+
+Continue development.
+
+---
+
+# 64. FINAL ARCHITECTURE
+
+The final application should conceptually look like:
+
+```text
+                 FLUTTER APPLICATION
+                         |
+             ┌───────────┴───────────┐
+             |                       |
+         Presentation            State
+             |                       |
+             └───────────┬───────────┘
+                         |
+                    Repository
+                         |
+                Mock Repository
+                         |
+                   Mock Data
+                         |
+             GPS Simulation Engine
+                         |
+              Simulated Locations
+```
+
+Later I will replace:
+
+```text
+Mock Repository
+```
+
+with:
+
+```text
+API Repository
+```
+
+and:
+
+```text
+GPS Simulation Engine
+```
+
+with:
+
+```text
+Backend Realtime Location Stream
+```
+
+without redesigning the Flutter application.
+
+---
+
+# 65. START NOW
+
+First inspect the existing project.
+
+If no Flutter project exists, create one.
+
+Then:
+
+1. Set up architecture.
+2. Create the design system.
+3. Create navigation.
+4. Create mock data engine.
+5. Create authentication/demo mode.
+6. Build dashboard.
+7. Build map.
+8. Build device management.
+9. Build GPS simulation.
+10. Build history/trips.
+11. Build geofences.
+12. Build alerts.
+13. Build fleet functionality.
+14. Build settings/profile.
+15. Add dark mode.
+16. Add animations.
+17. Add tests.
+18. Run analyzer.
+19. Fix all errors.
+20. Run the complete application and verify all major flows.
+
+Do not finish until the application feels like a **real commercial GPS tracking product**, despite using only local dummy data.
+
+The application should be designed so that I can later give you a separate backend/API prompt and connect the real GPS tracking hardware without having to redesign the Flutter UI/UX or core architecture.
