@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/di/providers.dart';
 import '../../../core/routing/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -120,7 +121,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final trail = selected != null && settings.showTrails
         ? ref.watch(liveTrailsProvider.select((t) => t[selected.id]))
         : null;
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final tones = context.tones;
+    final ground = theme.scaffoldBackgroundColor;
     final top = MediaQuery.paddingOf(context).top;
 
     if (!viewsAsync.hasValue) {
@@ -158,16 +161,29 @@ class _MapScreenState extends ConsumerState<MapScreen>
               },
               layersBelowDevices: [
                 if (trail != null && trail.length > 1)
-                  RouteLayers(
-                    points: trail,
-                    color: StatusStyle.of(selected!.status),
-                    showEndpoints: false,
-                    width: 4,
-                  ),
+                  RouteLayers(points: trail, showEndpoints: false, width: 4),
               ],
             ),
           ),
-          // Top: search + filters
+          // Fade from the ground behind the top controls.
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: top + 150,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ground, ground.withAlpha(0)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Top: search + layers, then status filters
           Positioned(
             left: 0,
             right: 0,
@@ -175,43 +191,50 @@ class _MapScreenState extends ConsumerState<MapScreen>
             child: Column(
               children: [
                 Padding(
-                  padding: AppSpacing.screen,
-                  child: Material(
-                    color: scheme.surface,
-                    borderRadius: AppRadius.lgAll,
-                    elevation: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: AppRadius.lgAll,
-                        boxShadow: AppShadows.floating(Theme.of(context).brightness),
-                      ),
-                      child: InkWell(
-                        borderRadius: AppRadius.lgAll,
-                        onTap: () => _searchSheet(views),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
-                          child: Row(
-                            children: [
-                              Icon(AppIcons.search, size: 20, color: scheme.onSurfaceVariant),
-                              AppSpacing.gapMd,
-                              Expanded(
-                                child: Text('Search ${views.length} devices',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: MapGlass(
+                          child: InkWell(
+                            borderRadius: AppRadius.lgAll,
+                            onTap: () => _searchSheet(views),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                              child: Row(
+                                children: [
+                                  Icon(AppIcons.search, size: 18, color: tones.neutral500),
+                                  AppSpacing.gapSm,
+                                  Expanded(
+                                    child: Text(
+                                      'Search ${views.length} devices',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.neutral500),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${filtered.where((v) => v.status.isMoving).length} moving',
+                                    style: theme.textTheme.labelMedium?.copyWith(color: tones.accent300),
+                                  ),
+                                ],
                               ),
-                              Text('${filtered.where((v) => v.status.isMoving).length} moving',
-                                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.primary)),
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      AppSpacing.gapSm,
+                      MapButton(icon: AppIcons.layers, tooltip: 'Map layers', onPressed: _layersSheet),
+                    ],
                   ),
                 ),
                 AppSpacing.gapSm,
-                ChipFilterBar<StatusFilter>(
-                  values: StatusFilter.values,
+                _StatusChips(
                   selected: _filter,
-                  label: (s) => s.label,
+                  counts: {
+                    for (final f in StatusFilter.values)
+                      f: views.where((v) => DeviceStatusEngine.matchesFilter(v.status, f)).length,
+                  },
                   onSelected: (s) => setState(() => _filter = s),
                 ),
               ],
@@ -219,12 +242,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
           ),
           // Right: controls
           Positioned(
-            right: AppSpacing.lg,
-            top: top + 128,
+            right: AppSpacing.md,
+            top: top + 112,
             child: Column(
               children: [
-                MapButton(icon: AppIcons.layers, tooltip: 'Map layers', onPressed: _layersSheet),
-                AppSpacing.gapSm,
                 MapButton(icon: AppIcons.zoomIn, tooltip: 'Zoom in', onPressed: () => zoomBy(1)),
                 AppSpacing.gapSm,
                 MapButton(icon: AppIcons.zoomOut, tooltip: 'Zoom out', onPressed: () => zoomBy(-1)),
@@ -242,7 +263,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               ],
             ),
           ),
-          // Bottom: selected device
+          // Bottom: selected device sheet (runs under the glass nav bar)
           Positioned(
             left: 0,
             right: 0,
@@ -278,6 +299,79 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 }
 
+/// Glass status filter pills: 7px status dot, label, count.
+class _StatusChips extends StatelessWidget {
+  const _StatusChips({required this.selected, required this.counts, required this.onSelected});
+
+  final StatusFilter selected;
+  final Map<StatusFilter, int> counts;
+  final ValueChanged<StatusFilter> onSelected;
+
+  Color _dot(BuildContext context, StatusFilter f) {
+    final tones = context.tones;
+    return switch (f) {
+      StatusFilter.all => Theme.of(context).colorScheme.primary,
+      StatusFilter.online || StatusFilter.moving => tones.ok,
+      StatusFilter.offline => tones.neutral500,
+      StatusFilter.idle => tones.tone(AppColors.idle),
+      StatusFilter.alert => tones.warn,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tones = context.tones;
+    return SizedBox(
+      height: 32,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        itemCount: StatusFilter.values.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        itemBuilder: (_, i) {
+          final f = StatusFilter.values[i];
+          final shape = StadiumBorder(
+            side: BorderSide(color: f == selected ? theme.colorScheme.primary : tones.divider),
+          );
+          return Material(
+            color: tones.glass,
+            shape: shape,
+            child: InkWell(
+              customBorder: shape,
+              onTap: () => onSelected(f),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 11),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(color: _dot(context, f), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(f.label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: theme.colorScheme.onSurface)),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${counts[f] ?? 0}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: tones.neutral500,
+                        fontFeatures: AppTypography.tabular,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _SelectedDevicePanel extends ConsumerWidget {
   const _SelectedDevicePanel({
     super.key,
@@ -295,98 +389,169 @@ class _SelectedDevicePanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     final unit = ref.watch(settingsProvider.select((s) => s.unit));
     final place = view.position == null ? 'Location unavailable' : ref.read(placeResolverProvider).describe(view.position!);
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    return SafeArea(
-      top: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Container(
-            margin: const EdgeInsets.all(AppSpacing.md),
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.md),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: AppRadius.xlAll,
-              boxShadow: AppShadows.floating(theme.brightness),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    DeviceAvatar(view, size: 44),
-                    AppSpacing.gapMd,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(view.name, style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 3),
-                          StatusBadge(view.status, compact: true),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+    final location = view.device.location;
+    final telemetry = location?.telemetry;
+    final hasGps = telemetry != null && telemetry.gpsSignal != SignalQuality.none;
+    final value = theme.textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w500, fontFeatures: AppTypography.tabular);
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    const buttonSize = Size(0, 44);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 14 + bottom),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: AppRadius.sheet,
+            boxShadow: AppShadows.floating(theme.brightness),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(color: tones.neutral700, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              AppSpacing.gapMd,
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(Fmt.speedValue(view.speedKmh, unit), style: AppTypography.metric),
-                        Text(unit.speed, style: muted),
+                        Text(
+                          view.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 2),
+                        TimeAgoText(
+                          view.lastUpdate,
+                          prefix: '$place · ',
+                          short: true,
+                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.neutral400),
+                        ),
                       ],
                     ),
-                    IconButton(onPressed: onClose, icon: const Icon(AppIcons.close, size: 20)),
-                  ],
-                ),
-                AppSpacing.gapMd,
-                Row(
-                  children: [
-                    Icon(AppIcons.pin, size: 15, color: theme.colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text(place, style: muted, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    BatteryIndicator(view.battery),
-                    AppSpacing.gapMd,
-                    TimeAgoText(view.lastUpdate, style: muted, short: true),
-                    AppSpacing.gapSm,
-                  ],
-                ),
-                AppSpacing.gapMd,
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        key: const Key('map-follow'),
-                        onPressed: onFollow,
-                        icon: Icon(following ? AppIcons.check : AppIcons.follow, size: 18),
-                        label: Text(following ? 'Following' : 'Follow'),
-                        style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                  ),
+                  AppSpacing.gapSm,
+                  StatusBadge(view.status, compact: true),
+                  IconButton(
+                    onPressed: onClose,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(AppIcons.close, size: 20, color: tones.neutral400),
+                  ),
+                ],
+              ),
+              AppSpacing.gapMd,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _Stat(
+                    label: 'Speed',
+                    child: Text.rich(
+                      TextSpan(children: [
+                        TextSpan(text: Fmt.speedValue(view.speedKmh, unit)),
+                        TextSpan(
+                          text: ' ${unit.speed}',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: tones.neutral500),
+                        ),
+                      ]),
+                      style: value,
+                    ),
+                  ),
+                  _Stat(
+                    label: 'Battery',
+                    child: Text(
+                      view.battery == null ? '--' : '${view.battery}%',
+                      style: value?.copyWith(color: tones.tone(StatusStyle.battery(view.battery))),
+                    ),
+                  ),
+                  _Stat(
+                    label: telemetry?.signal.label ?? 'No data',
+                    child: SizedBox(
+                      height: 20,
+                      child: Align(
+                        alignment: Alignment.bottomLeft,
+                        child: SignalBars(telemetry?.signal ?? SignalQuality.none),
                       ),
                     ),
-                    AppSpacing.gapSm,
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.push(Routes.deviceHistory(view.id)),
-                        icon: const Icon(AppIcons.history, size: 18),
-                        label: const Text('History'),
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-                      ),
+                  ),
+                  _Stat(
+                    label: location == null ? 'No fix' : '± ${Fmt.meters(location.accuracy)}',
+                    child: Text(location == null ? '--' : (hasGps ? 'GPS' : 'Cell'), style: value),
+                  ),
+                ],
+              ),
+              AppSpacing.gapLg,
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      key: const Key('map-follow'),
+                      onPressed: onFollow,
+                      icon: Icon(following ? AppIcons.check : AppIcons.follow, size: 18),
+                      label: Text(following ? 'Following' : 'Follow'),
+                      style: FilledButton.styleFrom(minimumSize: buttonSize),
                     ),
-                    AppSpacing.gapSm,
-                    Expanded(
-                      child: FilledButton(
-                        key: const Key('map-details'),
-                        onPressed: () => context.push(Routes.device(view.id)),
-                        style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-                        child: const Text('Details'),
-                      ),
+                  ),
+                  AppSpacing.gapSm,
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push(Routes.deviceHistory(view.id)),
+                      icon: const Icon(AppIcons.history, size: 18),
+                      label: const Text('History'),
+                      style: OutlinedButton.styleFrom(minimumSize: buttonSize),
                     ),
-                    AppSpacing.gapSm,
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  AppSpacing.gapSm,
+                  Expanded(
+                    child: OutlinedButton(
+                      key: const Key('map-details'),
+                      onPressed: () => context.push(Routes.device(view.id)),
+                      style: OutlinedButton.styleFrom(minimumSize: buttonSize),
+                      child: const Text('Details'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          child,
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, color: context.tones.neutral500),
+          ),
+        ],
       ),
     );
   }

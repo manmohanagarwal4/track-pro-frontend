@@ -9,7 +9,8 @@ import '../../../core/di/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/status_style.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../data/mock/geo/ncr_geo.dart';
@@ -128,8 +129,11 @@ class _GeofenceEditorScreenState extends ConsumerState<GeofenceEditorScreen>
         content: const Text('Alerts for this zone will stop immediately.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.emergency),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ctx.tones.critInk,
+              side: BorderSide(color: ctx.tones.crit),
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -155,215 +159,404 @@ class _GeofenceEditorScreenState extends ConsumerState<GeofenceEditorScreen>
     );
     final monitored = _devices.isEmpty ? views : views.where((v) => _devices.contains(v.id)).toList();
     final place = ref.read(placeResolverProvider).describe(_center);
+    final tones = context.tones;
+    final label = theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.neutral400);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_existing == null ? 'Create Geofence' : 'Edit Geofence'),
-        actions: [
-          if (_existing != null)
-            IconButton(onPressed: _delete, icon: const Icon(AppIcons.delete, color: AppColors.emergency)),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.huge),
-        children: [
-          ResponsiveCenter(
-            child: Padding(
-              padding: AppSpacing.screen,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ClipRRect(
-                    borderRadius: AppRadius.lgAll,
-                    child: SizedBox(
-                      height: 280,
-                      child: Stack(
-                        children: [
-                          TrackerMap(
-                            controller: _controller,
-                            devices: monitored,
-                            geofences: [draft],
-                            highlightGeofenceId: draft.id,
-                            initialCenter: _center,
-                            initialZoom: 14,
-                            onTap: (_, p) => setState(() => _center = p),
+      body: LayoutBuilder(
+        builder: (context, box) {
+          final mapH = box.maxHeight * 0.52 < 440 ? box.maxHeight * 0.52 : 440.0;
+          final sheetTop = mapH - 40;
+          return Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: mapH,
+                child: TrackerMap(
+                  controller: _controller,
+                  devices: monitored,
+                  geofences: [draft],
+                  highlightGeofenceId: draft.id,
+                  initialCenter: _center,
+                  initialZoom: 14,
+                  onTap: (_, p) => setState(() => _center = p),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 110,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [theme.scaffoldBackgroundColor, theme.scaffoldBackgroundColor.withAlpha(0)],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
+                    child: Row(
+                      children: [
+                        _Glass(
+                          child: IconButton(
+                            tooltip: 'Close',
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            icon: Icon(AppIcons.close, size: 20, color: theme.colorScheme.onSurface),
                           ),
-                          Positioned(
-                            left: AppSpacing.md,
-                            top: AppSpacing.md,
-                            right: AppSpacing.md,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surface.withValues(alpha: 0.94),
-                                borderRadius: AppRadius.mdAll,
-                              ),
-                              child: Text('Tap the map to place the centre · $place',
-                                  maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall),
+                        ),
+                        AppSpacing.gapSm,
+                        Expanded(
+                          child: _Glass(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Tap the map to place the centre',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
                             ),
                           ),
-                          Positioned(
-                            right: AppSpacing.md,
-                            bottom: AppSpacing.md,
-                            child: Column(
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: AppSpacing.md,
+                top: sheetTop - 56,
+                child: MapButton(
+                  icon: AppIcons.locate,
+                  tooltip: 'My location',
+                  onPressed: () {
+                    setState(() => _center = NcrGeo.userLocation);
+                    animateCamera(NcrGeo.userLocation, 14);
+                  },
+                ),
+              ),
+              Positioned(
+                top: sheetTop,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: AppRadius.sheet,
+                    boxShadow: AppShadows.floating(theme.brightness),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: AppRadius.sheet,
+                    child: ResponsiveCenter(
+                      // Eager column so the Save button always exists in the tree.
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          AppSpacing.md,
+                          AppSpacing.lg,
+                          34 + MediaQuery.paddingOf(context).bottom,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 38,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: tones.neutral700,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                            AppSpacing.gapMd,
+                            Row(
                               children: [
-                                MapButton(
-                                  icon: AppIcons.locate,
-                                  tooltip: 'My location',
-                                  onPressed: () {
-                                    setState(() => _center = NcrGeo.userLocation);
-                                    animateCamera(NcrGeo.userLocation, 14);
-                                  },
+                                Expanded(
+                                  child: Text(
+                                    _existing == null ? 'Create Geofence' : 'Edit Geofence',
+                                    style: theme.textTheme.titleMedium,
+                                  ),
+                                ),
+                                if (_existing != null)
+                                  IconButton(
+                                    tooltip: 'Delete',
+                                    onPressed: _delete,
+                                    icon: Icon(AppIcons.delete, size: 20, color: tones.crit),
+                                  ),
+                              ],
+                            ),
+                            AppSpacing.gapMd,
+                            Text('Name', style: label),
+                            const SizedBox(height: 6),
+                            TextField(
+                              key: const Key('geofence-name'),
+                              controller: _name,
+                              textCapitalization: TextCapitalization.words,
+                              onChanged: (_) => setState(() {}),
+                              decoration: const InputDecoration(hintText: 'e.g. Home'),
+                            ),
+                            AppSpacing.gapMd,
+                            SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<String>(
+                                showSelectedIcon: false,
+                                segments: const [
+                                  ButtonSegment(
+                                    value: 'circle',
+                                    label: Text('Circle'),
+                                    icon: Icon(AppIcons.circle, size: 16),
+                                  ),
+                                  ButtonSegment(value: 'polygon', label: Text('Polygon'), enabled: false),
+                                ],
+                                selected: const {'circle'},
+                                onSelectionChanged: (_) {},
+                              ),
+                            ),
+                            AppSpacing.gapMd,
+                            Row(
+                              children: [
+                                Text('Radius', style: label),
+                                Expanded(
+                                  child: Slider(
+                                    key: const Key('geofence-radius'),
+                                    value: _radius,
+                                    min: 100,
+                                    max: 5000,
+                                    divisions: 49,
+                                    label: Fmt.meters(_radius),
+                                    onChanged: (v) => setState(() => _radius = v),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 60,
+                                  child: Text(
+                                    Fmt.meters(_radius),
+                                    textAlign: TextAlign.right,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 13,
+                                      fontFeatures: AppTypography.tabular,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (views.isNotEmpty) ...[
-                    AppSpacing.gapSm,
-                    SizedBox(
-                      height: 36,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          Text('Centre on: ', style: theme.textTheme.bodySmall),
-                          for (final v in (_devices.isEmpty ? views.take(6) : monitored.take(6)))
-                            if (v.position != null)
-                              Padding(
-                                padding: const EdgeInsets.only(right: AppSpacing.sm),
-                                child: ActionChip(
-                                  avatar: Icon(AppIcons.asset(v.iconType), size: 14),
-                                  label: Text(v.name),
-                                  onPressed: () {
-                                    setState(() => _center = v.position!);
-                                    animateCamera(v.position!, 14);
-                                  },
+                            AppSpacing.gapSm,
+                            Text('Type', style: label),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final t in GeofenceType.values)
+                                  _RuleChip(
+                                    icon: AppIcons.geofenceType(t),
+                                    label: t.label,
+                                    selected: _type == t,
+                                    onTap: () => setState(() {
+                                      final old = _type.label;
+                                      _type = t;
+                                      if (_name.text.isEmpty || _name.text == old) _name.text = t.label;
+                                    }),
+                                  ),
+                              ],
+                            ),
+                            AppSpacing.gapMd,
+                            Text('Alert on', style: label),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                _RuleChip(
+                                  icon: AppIcons.geofenceEnter,
+                                  label: 'Enter',
+                                  selected: _enter,
+                                  onTap: () => setState(() => _enter = !_enter),
+                                ),
+                                _RuleChip(
+                                  icon: AppIcons.geofenceExit,
+                                  label: 'Exit',
+                                  selected: _exit,
+                                  onTap: () => setState(() => _exit = !_exit),
+                                ),
+                              ],
+                            ),
+                            AppSpacing.gapMd,
+                            if (views.isNotEmpty) ...[
+                              SizedBox(
+                                height: 36,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  children: [
+                                    Center(child: Text('Centre on  ', style: label)),
+                                    for (final v in (_devices.isEmpty ? views.take(6) : monitored.take(6)))
+                                      if (v.position != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(right: 6),
+                                          child: ActionChip(
+                                            avatar: Icon(AppIcons.asset(v.iconType), size: 14, color: tones.neutral400),
+                                            label: Text(v.name),
+                                            onPressed: () {
+                                              setState(() => _center = v.position!);
+                                              animateCamera(v.position!, 14);
+                                            },
+                                          ),
+                                        ),
+                                  ],
                                 ),
                               ),
-                        ],
+                              AppSpacing.gapSm,
+                            ],
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                border: Border.symmetric(horizontal: BorderSide(color: tones.divider)),
+                              ),
+                              child: InkWell(
+                                onTap: () => _pickDevices(views),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 11),
+                                  child: Row(
+                                    children: [
+                                      Icon(AppIcons.devices, size: 19, color: tones.neutral400),
+                                      AppSpacing.gapMd,
+                                      Expanded(
+                                        child: Text(
+                                          'Devices',
+                                          style: theme.textTheme.bodyLarge?.copyWith(fontSize: 15),
+                                        ),
+                                      ),
+                                      Text(
+                                        _devices.isEmpty
+                                            ? 'All devices (${views.length})'
+                                            : '${_devices.length} selected',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontSize: 13,
+                                          color: tones.neutral500,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Icon(AppIcons.chevronRight, size: 16, color: tones.neutral600),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            AppSpacing.gapMd,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(AppIcons.pin, size: 14, color: tones.neutral500),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Centre · $place',
+                                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: tones.neutral500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            AppSpacing.gapMd,
+                            FilledButton(
+                              key: const Key('geofence-save'),
+                              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                              onPressed: _busy ? null : _save,
+                              child: _busy
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Text('Save'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                  AppSpacing.gapLg,
-                  Text('Name', style: theme.textTheme.titleSmall),
-                  AppSpacing.gapSm,
-                  TextField(
-                    key: const Key('geofence-name'),
-                    controller: _name,
-                    textCapitalization: TextCapitalization.words,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(hintText: 'e.g. Home'),
                   ),
-                  AppSpacing.gapLg,
-                  Text('Type', style: theme.textTheme.titleSmall),
-                  AppSpacing.gapSm,
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: [
-                      for (final t in GeofenceType.values)
-                        ChoiceChip(
-                          avatar: Icon(AppIcons.geofenceType(t), size: 16, color: StatusStyle.geofence(t)),
-                          label: Text(t.label),
-                          selected: _type == t,
-                          onSelected: (_) => setState(() {
-                            final old = _type.label;
-                            _type = t;
-                            if (_name.text.isEmpty || _name.text == old) _name.text = t.label;
-                          }),
-                        ),
-                    ],
-                  ),
-                  AppSpacing.gapLg,
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text('Shape', style: theme.textTheme.titleSmall),
-                            const Spacer(),
-                            const Pill(label: 'Circle', color: AppColors.iris, icon: AppIcons.circle),
-                          ],
-                        ),
-                        AppSpacing.gapMd,
-                        Row(
-                          children: [
-                            Text('Radius', style: theme.textTheme.titleSmall),
-                            const Spacer(),
-                            Text(Fmt.meters(_radius), style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
-                          ],
-                        ),
-                        Slider(
-                          key: const Key('geofence-radius'),
-                          value: _radius,
-                          min: 100,
-                          max: 5000,
-                          divisions: 49,
-                          label: Fmt.meters(_radius),
-                          onChanged: (v) => setState(() => _radius = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.gapLg,
-                  Text('Events', style: theme.textTheme.titleSmall),
-                  AppCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        CheckboxListTile(
-                          value: _enter,
-                          onChanged: (v) => setState(() => _enter = v ?? false),
-                          title: const Text('Enter'),
-                          subtitle: const Text('Alert when a device arrives'),
-                          secondary: const Icon(AppIcons.geofenceEnter),
-                        ),
-                        CheckboxListTile(
-                          value: _exit,
-                          onChanged: (v) => setState(() => _exit = v ?? false),
-                          title: const Text('Exit'),
-                          subtitle: const Text('Alert when a device leaves'),
-                          secondary: const Icon(AppIcons.geofenceExit),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.gapLg,
-                  Text('Devices', style: theme.textTheme.titleSmall),
-                  AppSpacing.gapSm,
-                  AppCard(
-                    onTap: () => _pickDevices(views),
-                    child: Row(
-                      children: [
-                        const Icon(AppIcons.devices, size: 20),
-                        AppSpacing.gapMd,
-                        Expanded(
-                          child: Text(
-                            _devices.isEmpty ? 'All devices (${views.length})' : '${_devices.length} selected',
-                            style: theme.textTheme.titleSmall,
-                          ),
-                        ),
-                        const Icon(AppIcons.chevronRight, size: 18),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.gapXxl,
-                  FilledButton(
-                    key: const Key('geofence-save'),
-                    onPressed: _busy ? null : _save,
-                    child: _busy
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Save'),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Glass control floating over the map.
+class _Glass extends StatelessWidget {
+  const _Glass({required this.child, this.padding, this.alignment});
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final AlignmentGeometry? alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      constraints: const BoxConstraints(minWidth: 44),
+      padding: padding,
+      alignment: alignment ?? Alignment.center,
+      decoration: BoxDecoration(
+        color: context.tones.glass,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: AppShadows.hairline(Theme.of(context).brightness),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Pill toggle (32px): accent border and ink when on.
+class _RuleChip extends StatelessWidget {
+  const _RuleChip({required this.icon, required this.label, required this.selected, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fg = selected ? theme.colorScheme.primary : theme.colorScheme.onSurface;
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.pillAll,
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.pillAll,
+            border: Border.all(color: selected ? theme.colorScheme.primary : context.tones.divider),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: fg),
+              const SizedBox(width: 4),
+              Text(label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: fg)),
+            ],
+          ),
+        ),
       ),
     );
   }

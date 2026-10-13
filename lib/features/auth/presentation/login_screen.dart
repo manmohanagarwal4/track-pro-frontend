@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/providers.dart';
 import '../../../core/routing/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/trackpro_logo.dart';
@@ -95,12 +96,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     final busy = _busy || _demoBusy;
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
+            padding: const EdgeInsets.fromLTRB(22, 48, 22, 32),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
@@ -108,40 +110,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Align(alignment: Alignment.centerLeft, child: TrackProLogo(size: 40)),
-                    const SizedBox(height: 36),
-                    Text('Welcome back', style: theme.textTheme.headlineMedium),
+                    const Align(alignment: Alignment.centerLeft, child: TrackProMark(size: 48)),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Welcome back',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.5,
+                        height: 1.15,
+                      ),
+                    ),
                     AppSpacing.gapSm,
                     Text(
                       'Sign in to see where everything is right now.',
-                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodyLarge?.copyWith(color: tones.neutral500),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    const AuthFieldLabel('Email'),
                     TextFormField(
                       key: const Key('login-email'),
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
                         hintText: 'Email',
-                        prefixIcon: Icon(AppIcons.mail, size: 20),
+                        constraints: const BoxConstraints(minHeight: 48),
+                        prefixIcon: Icon(AppIcons.mail, size: 20, color: tones.neutral400),
                       ),
                       validator: (v) => v == null || !v.contains('@') || !v.contains('.')
                           ? 'Enter a valid email'
                           : null,
                     ),
-                    AppSpacing.gapMd,
+                    AppSpacing.gapLg,
+                    const AuthFieldLabel('Password'),
                     TextFormField(
                       key: const Key('login-password'),
                       controller: _password,
                       obscureText: _obscure,
                       autofillHints: const [AutofillHints.password],
                       onFieldSubmitted: (_) => _signIn(),
+                      style: const TextStyle(fontSize: 16),
                       decoration: InputDecoration(
                         hintText: 'Password',
-                        prefixIcon: const Icon(AppIcons.lock, size: 20),
+                        constraints: const BoxConstraints(minHeight: 48),
+                        prefixIcon: Icon(AppIcons.lock, size: 20, color: tones.neutral400),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscure ? AppIcons.eye : AppIcons.eyeOff, size: 20),
+                          icon: Icon(_obscure ? AppIcons.eye : AppIcons.eyeOff, size: 20, color: tones.neutral400),
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
@@ -160,11 +176,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               padding: const EdgeInsets.only(bottom: AppSpacing.md),
                               child: Row(
                                 children: [
-                                  Icon(AppIcons.warning, size: 16, color: theme.colorScheme.error),
+                                  Icon(AppIcons.warning, size: 16, color: tones.critInk),
                                   AppSpacing.gapSm,
                                   Expanded(
                                     child: Text(_error!,
-                                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
+                                        style: theme.textTheme.bodySmall?.copyWith(color: tones.critInk)),
                                   ),
                                 ],
                               ),
@@ -173,43 +189,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     FilledButton(
                       key: const Key('login-submit'),
                       onPressed: busy ? null : _signIn,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      ),
                       child: _busy ? const _ButtonSpinner() : const Text('Sign in'),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                          child: Text('or', style: theme.textTheme.bodySmall),
-                        ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                    AppSpacing.gapSm,
                     OutlinedButton.icon(
                       key: const Key('login-demo'),
                       onPressed: busy ? null : _demo,
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
                       icon: _demoBusy ? const _ButtonSpinner() : const Icon(AppIcons.sparkles, size: 18),
                       label: const Text('Continue with Demo Account'),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    AppSpacing.gapLg,
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('New to TrackPro?', style: theme.textTheme.bodyMedium),
+                        Text('New to TrackPro?', style: theme.textTheme.bodyMedium?.copyWith(color: tones.neutral500)),
                         TextButton(
                           onPressed: busy ? null : () => context.push(Routes.register),
                           child: const Text('Create account'),
                         ),
                       ],
                     ),
-                    AppSpacing.gapSm,
-                    Text(
-                      'Demo mode: any email and a password of 4+ characters will work.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    AppSpacing.gapXl,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(AppIcons.info, size: 16, color: tones.neutral500),
+                        AppSpacing.gapSm,
+                        Expanded(
+                          child: Text(
+                            'Demo mode: any email and a password of 4+ characters will work.',
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: tones.neutral500),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -220,6 +238,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
+
+/// Small muted label above an auth form field (`.field label` in the design).
+class AuthFieldLabel extends StatelessWidget {
+  const AuthFieldLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13, color: context.tones.neutral400),
+        ),
+      );
 }
 
 class _ButtonSpinner extends StatelessWidget {

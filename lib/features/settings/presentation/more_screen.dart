@@ -19,6 +19,7 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     final user = ref.watch(sessionProvider).value;
     final type = ref.watch(accountTypeProvider);
     final offline = ref.watch(connectivityProvider.select((c) => c.offline));
@@ -26,93 +27,104 @@ class MoreScreen extends ConsumerWidget {
     final business = type == AccountType.business;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('More')),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.bottomSafe),
-        children: [
-          ResponsiveCenter(
-            child: Padding(
-              padding: AppSpacing.screen,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AppCard(
-                    onTap: () => context.push(Routes.profile),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundColor: theme.colorScheme.primary,
-                          child: Text(user?.initials ?? '',
-                              style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary)),
-                        ),
-                        AppSpacing.gapMd,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(user?.name ?? '', style: theme.textTheme.titleMedium),
-                              Text(user?.email ?? '', style: theme.textTheme.bodySmall),
-                            ],
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.bottomSafe),
+          children: [
+            ResponsiveCenter(
+              child: Padding(
+                padding: AppSpacing.screen,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('More', style: theme.textTheme.headlineMedium),
+                    AppSpacing.gapLg,
+                    InkWell(
+                      borderRadius: AppRadius.lgAll,
+                      onTap: () => context.push(Routes.profile),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(color: tones.accent800, shape: BoxShape.circle),
+                            child: Text(
+                              user?.initials ?? '',
+                              style: theme.textTheme.titleLarge?.copyWith(fontSize: 21, color: tones.accent200),
+                            ),
                           ),
-                        ),
-                        const Icon(AppIcons.chevronRight, size: 18),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.gapMd,
-                  const WorkspaceSwitcher(),
-                  const SectionHeader('Manage', padding: EdgeInsets.fromLTRB(0, AppSpacing.xl, 0, AppSpacing.sm)),
-                  SettingsGroup(children: [
-                    if (business)
-                      SettingsTile(icon: AppIcons.devices, title: 'All devices', onTap: () => context.go(Routes.devices)),
-                    SettingsTile(icon: AppIcons.assets, title: 'Assets', onTap: () => context.push(Routes.assets)),
-                    SettingsTile(icon: AppIcons.geofence, title: 'Geofences', onTap: () => context.push(Routes.geofences)),
-                    if (business)
-                      SettingsTile(icon: AppIcons.driver, title: 'Drivers', onTap: () => context.push(Routes.drivers)),
-                    SettingsTile(
-                      icon: AppIcons.bellRing,
-                      title: 'Notifications',
-                      trailing: unreadNotifications == 0 ? null : Badge(label: Text('$unreadNotifications')),
-                      onTap: () => context.push(Routes.notifications),
-                    ),
-                    SettingsTile(icon: AppIcons.add, title: 'Add tracker', onTap: () => context.push(Routes.addDevice)),
-                  ]),
-                  const SectionHeader('App', padding: EdgeInsets.fromLTRB(0, AppSpacing.xl, 0, AppSpacing.sm)),
-                  SettingsGroup(children: [
-                    SettingsTile(icon: AppIcons.settings, title: 'Settings', onTap: () => context.push(Routes.settings)),
-                    SettingsTile(
-                      icon: AppIcons.offline,
-                      title: 'Simulate Offline Mode',
-                      trailing: Switch(
-                        key: const Key('offline-toggle'),
-                        value: offline,
-                        onChanged: (v) => ref.read(connectivityProvider.notifier).setOffline(v),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(user?.name ?? '', style: theme.textTheme.headlineSmall?.copyWith(fontSize: 22)),
+                                Text(user?.email ?? '',
+                                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.neutral500)),
+                              ],
+                            ),
+                          ),
+                          Icon(AppIcons.chevronRight, size: 16, color: tones.neutral600),
+                        ],
                       ),
                     ),
-                    SettingsTile(
-                      icon: AppIcons.info,
-                      title: 'About TrackPro',
-                      onTap: () => context.push(Routes.settingsSection('about')),
+                    const SizedBox(height: 14),
+                    const WorkspaceSwitcher(),
+                    const SettingsSectionLabel('Manage'),
+                    SettingsGroup(children: [
+                      if (business)
+                        SettingsTile(icon: AppIcons.devices, title: 'All devices', onTap: () => context.go(Routes.devices)),
+                      SettingsTile(icon: AppIcons.assets, title: 'Assets', onTap: () => context.push(Routes.assets)),
+                      SettingsTile(icon: AppIcons.geofence, title: 'Geofences', onTap: () => context.push(Routes.geofences)),
+                      if (business)
+                        SettingsTile(icon: AppIcons.driver, title: 'Drivers', onTap: () => context.push(Routes.drivers)),
+                      SettingsTile(
+                        icon: AppIcons.bellRing,
+                        title: 'Notifications',
+                        meta: unreadNotifications == 0 ? null : '$unreadNotifications new',
+                        onTap: () => context.push(Routes.notifications),
+                      ),
+                      SettingsTile(icon: AppIcons.add, title: 'Add tracker', onTap: () => context.push(Routes.addDevice)),
+                    ]),
+                    const SettingsSectionLabel('App'),
+                    SettingsGroup(children: [
+                      SettingsTile(icon: AppIcons.settings, title: 'Settings', onTap: () => context.push(Routes.settings)),
+                      SettingsTile(
+                        icon: AppIcons.offline,
+                        title: 'Simulate Offline Mode',
+                        trailing: Switch(
+                          key: const Key('offline-toggle'),
+                          value: offline,
+                          onChanged: (v) => ref.read(connectivityProvider.notifier).setOffline(v),
+                        ),
+                      ),
+                      SettingsTile(
+                        icon: AppIcons.info,
+                        title: 'About TrackPro',
+                        onTap: () => context.push(Routes.settingsSection('about')),
+                      ),
+                    ]),
+                    AppSpacing.gapXl,
+                    const DemoModeNotice(),
+                    AppSpacing.gapXl,
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: tones.critInk,
+                        iconColor: tones.critInk,
+                        side: BorderSide(color: tones.crit),
+                      ),
+                      onPressed: () => confirmLogout(context, ref),
+                      icon: const Icon(AppIcons.logout, size: 18),
+                      label: const Text('Log out'),
                     ),
-                  ]),
-                  AppSpacing.gapXl,
-                  const DemoModeNotice(),
-                  AppSpacing.gapXl,
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.emergency,
-                      side: const BorderSide(color: AppColors.emergency),
-                    ),
-                    onPressed: () => confirmLogout(context, ref),
-                    icon: const Icon(AppIcons.logout, size: 18),
-                    label: const Text('Log out'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

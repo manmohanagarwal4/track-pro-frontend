@@ -95,13 +95,15 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = StatusStyle.of(status);
+    final tones = context.tones;
+    final color = tones.tone(StatusStyle.of(status));
+    final tag = tones.tag(StatusStyle.of(status));
     return AnimatedContainer(
       duration: AppDurations.medium,
-      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : AppSpacing.sm, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 10, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: AppRadius.pillAll,
+        color: tag.bg,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -113,7 +115,7 @@ class StatusBadge extends StatelessWidget {
               StatusStyle.label(status),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color, letterSpacing: 0.2),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: tag.ink, letterSpacing: 0.2),
             ),
           ),
         ],
@@ -122,7 +124,7 @@ class StatusBadge extends StatelessWidget {
   }
 }
 
-/// Rounded avatar showing the asset icon tinted by status.
+/// Quiet tile with the asset icon, ringed in its status color.
 class DeviceAvatar extends StatelessWidget {
   const DeviceAvatar(this.view, {super.key, this.size = 46});
 
@@ -131,16 +133,18 @@ class DeviceAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = StatusStyle.of(view.status);
+    final tones = context.tones;
+    final color = tones.tone(StatusStyle.of(view.status));
     return AnimatedContainer(
       duration: AppDurations.medium,
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(size * 0.32),
+        color: tones.neutral800,
+        borderRadius: BorderRadius.circular(size * 0.3),
+        border: Border.all(color: color, width: 1.5),
       ),
-      child: Icon(AppIcons.asset(view.iconType), color: color, size: size * 0.48),
+      child: Icon(AppIcons.asset(view.iconType), color: Theme.of(context).colorScheme.onSurface, size: size * 0.5),
     );
   }
 }
@@ -153,7 +157,7 @@ class BatteryIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = StatusStyle.battery(level);
+    final color = context.tones.tone(StatusStyle.battery(level));
     final l = (level ?? 0).clamp(0, 100);
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -194,8 +198,9 @@ class SignalBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = color ?? (quality.bars >= 3 ? AppColors.moving : quality.bars >= 2 ? AppColors.warning : AppColors.emergency);
-    final inactive = Theme.of(context).colorScheme.outline;
+    final tones = context.tones;
+    final active = color ?? (quality.bars >= 3 ? tones.ok : quality.bars >= 2 ? tones.warn : tones.crit);
+    final inactive = tones.neutral700;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,

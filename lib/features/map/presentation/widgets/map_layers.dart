@@ -18,6 +18,7 @@ class GeofenceLayers extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final zoom = MapCamera.of(context).zoom;
+    final tones = context.tones;
     final fences = geofences.where((g) => g.active || g.id == highlightId).toList();
     return Stack(
       children: [
@@ -28,9 +29,9 @@ class GeofenceLayers extends StatelessWidget {
                 point: g.center,
                 radius: g.radiusM,
                 useRadiusInMeter: true,
-                color: StatusStyle.geofence(g.type).withValues(alpha: g.id == highlightId ? 0.22 : 0.12),
-                borderColor: StatusStyle.geofence(g.type).withValues(alpha: 0.85),
-                borderStrokeWidth: g.id == highlightId ? 2.5 : 1.5,
+                color: tones.tone(StatusStyle.geofence(g.type)).withValues(alpha: g.id == highlightId ? 0.16 : 0.08),
+                borderColor: tones.tone(StatusStyle.geofence(g.type)),
+                borderStrokeWidth: g.id == highlightId ? 2 : 1.5,
               ),
           ],
         ),
@@ -51,6 +52,7 @@ class GeofenceLayers extends StatelessWidget {
   }
 }
 
+/// Status-colored label with a map-ground halo, like the design's zone names.
 class _FenceLabel extends StatelessWidget {
   const _FenceLabel({required this.fence});
 
@@ -58,29 +60,39 @@ class _FenceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = StatusStyle.geofence(fence.type);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(AppIcons.geofenceType(fence.type), size: 11, color: color),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              fence.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, color: color),
-            ),
+    final color = context.tones.tone(StatusStyle.geofence(fence.type));
+    final halo = MapPalette.of(context).labelHalo;
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          fontSize: 10,
+          letterSpacing: 0.6,
+          fontWeight: FontWeight.w500,
+        );
+    final label = fence.name.toUpperCase();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(AppIcons.geofenceType(fence.type), size: 11, color: color, shadows: [Shadow(color: halo, blurRadius: 3)]),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Stack(
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: style?.copyWith(
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 3
+                    ..strokeJoin = StrokeJoin.round
+                    ..color = halo,
+                ),
+              ),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style?.copyWith(color: color)),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -115,7 +127,9 @@ class RouteLayers extends StatelessWidget {
               strokeWidth: width,
               color: c,
               borderStrokeWidth: 2,
-              borderColor: Colors.white.withValues(alpha: 0.8),
+              borderColor: MapPalette.of(context).land.withValues(alpha: 0.85),
+              strokeCap: StrokeCap.round,
+              strokeJoin: StrokeJoin.round,
               pattern: dashed ? StrokePattern.dashed(segments: const [8, 6]) : const StrokePattern.solid(),
             ),
           ],
@@ -132,6 +146,7 @@ class RouteLayers extends StatelessWidget {
   }
 }
 
+/// Start: ground disc ringed in text color. End: accent square with halo.
 class _EndpointPin extends StatelessWidget {
   const _EndpointPin({required this.start});
 
@@ -139,15 +154,37 @@ class _EndpointPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = start ? AppColors.moving : AppColors.emergency;
+    final theme = Theme.of(context);
+    if (start) {
+      final ink = theme.colorScheme.onSurface;
+      return Center(
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: ink, width: 2.5),
+            boxShadow: [BoxShadow(color: MapPalette.of(context).land, spreadRadius: 1.5)],
+          ),
+          alignment: Alignment.center,
+          child: Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: ink, shape: BoxShape.circle),
+          ),
+        ),
+      );
+    }
+    final accent = theme.colorScheme.primary;
     return Container(
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2.5),
-        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4)],
+      decoration: BoxDecoration(color: accent.withValues(alpha: 0.2), shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Container(
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(3)),
       ),
-      child: Icon(start ? AppIcons.play : AppIcons.flag, size: 12, color: Colors.white),
     );
   }
 }

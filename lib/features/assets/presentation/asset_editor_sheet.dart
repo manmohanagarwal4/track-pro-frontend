@@ -2,8 +2,10 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/asset.dart';
 import '../../../data/models/enums.dart';
 import '../../auth/application/session_controller.dart';
@@ -73,7 +75,7 @@ class _AssetEditorState extends ConsumerState<_AssetEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
@@ -82,19 +84,21 @@ class _AssetEditorState extends ConsumerState<_AssetEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(widget.asset == null ? 'New asset' : 'Edit asset', style: theme.textTheme.titleLarge),
+              Text(widget.asset == null ? 'New asset' : 'Edit asset',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500, letterSpacing: -0.4)),
               AppSpacing.gapLg,
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+              Text('KIND', style: AppTypography.overline.copyWith(color: tones.neutral500)),
+              AppSpacing.gapSm,
+              GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: AppSpacing.sm,
+                crossAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 1.05,
                 children: [
                   for (final t in AssetType.selectable)
-                    ChoiceChip(
-                      avatar: Icon(AppIcons.asset(t), size: 16),
-                      label: Text(t.label),
-                      selected: _type == t,
-                      onSelected: (_) => setState(() => _type = t),
-                    ),
+                    _KindTile(type: t, selected: _type == t, onTap: () => setState(() => _type = t)),
                 ],
               ),
               AppSpacing.gapLg,
@@ -119,6 +123,46 @@ class _AssetEditorState extends ConsumerState<_AssetEditor> {
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text('Save asset'),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Kind picker tile: icon above label, accent ring when selected.
+class _KindTile extends StatelessWidget {
+  const _KindTile({required this.type, required this.selected, required this.onTap});
+
+  final AssetType type;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tones = context.tones;
+    return Material(
+      color: theme.scaffoldBackgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.mdAll,
+        side: BorderSide(color: selected ? theme.colorScheme.primary : AppColors.transparent, width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(AppIcons.asset(type), size: 22, color: selected ? tones.accent300 : tones.neutral400),
+              const SizedBox(height: 6),
+              Text(type.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: selected ? theme.colorScheme.onSurface : tones.neutral400)),
             ],
           ),
         ),

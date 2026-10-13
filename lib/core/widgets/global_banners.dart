@@ -59,24 +59,26 @@ class _ConnectivityBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tones = context.tones;
     final syncing = state.syncing;
-    final color = syncing ? AppColors.moving : AppColors.lightText;
+    final bg = syncing ? tones.okBg : tones.warnBg;
+    final ink = syncing ? tones.okInk : tones.warnInk;
     final top = MediaQuery.paddingOf(context).top;
     final last = state.lastSyncedAt;
     return Material(
-      color: color,
+      color: bg,
       child: Padding(
         padding: EdgeInsets.fromLTRB(AppSpacing.lg, top + 8, AppSpacing.lg, 8),
         child: Row(
           children: [
             if (syncing)
-              const SizedBox(
+              SizedBox(
                 width: 14,
                 height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(strokeWidth: 2, color: ink),
               )
             else
-              const Icon(AppIcons.offline, size: 16, color: Colors.white),
+              Icon(AppIcons.offline, size: 16, color: ink),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
@@ -86,7 +88,7 @@ class _ConnectivityBanner extends StatelessWidget {
                         '${last == null ? '' : ' · Last synced ${Fmt.time(last)}'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: ink),
               ),
             ),
           ],
@@ -163,45 +165,49 @@ class _ToastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = StatusStyle.alert(alert.type, alert.severity);
-    return Material(
-      color: theme.colorScheme.surface,
-      borderRadius: AppRadius.lgAll,
-      elevation: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.lgAll,
-          boxShadow: AppShadows.floating(theme.brightness),
-          border: Border(left: BorderSide(color: color, width: 4)),
-        ),
+    final tones = context.tones;
+    final tag = tones.tag(StatusStyle.alert(alert.type, alert.severity));
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: AppRadius.mdAll,
+        boxShadow: AppShadows.floating(theme.brightness),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
         child: InkWell(
-          borderRadius: AppRadius.lgAll,
+          borderRadius: AppRadius.mdAll,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.xs, AppSpacing.md),
             child: Row(
               children: [
-                Icon(AppIcons.alert(alert.type), color: color, size: 22),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(color: tag.bg, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(AppIcons.alert(alert.type), color: tag.ink, size: 20),
+                ),
                 AppSpacing.gapMd,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(alert.title, style: theme.textTheme.titleSmall?.copyWith(color: color)),
+                      Text(alert.title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 2),
                       Text(
                         alert.value == null ? alert.message : '${alert.message} ${alert.value}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
+                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.neutral500),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
                   onPressed: onClose,
-                  icon: const Icon(AppIcons.close, size: 18),
+                  icon: Icon(AppIcons.close, size: 18, color: tones.neutral400),
                   visualDensity: VisualDensity.compact,
                 ),
               ],

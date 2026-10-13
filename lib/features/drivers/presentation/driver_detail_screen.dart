@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../domain/device_view.dart';
+import '../../dashboard/presentation/widgets/dashboard_widgets.dart';
 import '../../devices/application/devices_controller.dart';
 import '../../devices/presentation/widgets/device_card.dart';
+import '../../trips/presentation/widgets/trip_widgets.dart';
 import '../application/drivers_controller.dart';
 import 'assign_vehicle_sheet.dart';
 import 'driver_editor_sheet.dart';
@@ -23,7 +26,7 @@ class DriverDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     final drivers = ref.watch(driversProvider);
     final views = ref.watch(allDeviceViewsProvider).value ?? const <DeviceView>[];
     final driver = drivers.value?.where((d) => d.id == driverId).firstOrNull;
@@ -42,12 +45,11 @@ class DriverDetailScreen extends ConsumerWidget {
     final vehicle = views.where((v) => v.asset?.id == driver.assetId).firstOrNull;
     return Scaffold(
       appBar: AppBar(
-        title: Text(driver.name),
         actions: [
           IconButton(
             tooltip: 'Edit driver',
             onPressed: () => showDriverEditor(context, driver: driver),
-            icon: const Icon(AppIcons.edit),
+            icon: const Icon(AppIcons.edit, size: 20),
           ),
           IconButton(
             key: const Key('driver-detail-delete'),
@@ -57,7 +59,7 @@ class DriverDetailScreen extends ConsumerWidget {
               final deleted = await confirmDeleteDriver(context, ref, driver, vehicleName: vehicle?.name);
               if (deleted) router.pop();
             },
-            icon: Icon(AppIcons.delete, color: theme.colorScheme.error),
+            icon: Icon(AppIcons.delete, size: 20, color: tones.crit),
           ),
         ],
       ),
@@ -70,46 +72,53 @@ class DriverDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AppCard(
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor: color.withValues(alpha: 0.15),
-                          child: Text(driver.initials, style: theme.textTheme.headlineSmall?.copyWith(color: color)),
-                        ),
-                        AppSpacing.gapMd,
-                        Text(driver.name, style: theme.textTheme.titleLarge),
-                        AppSpacing.gapXs,
-                        Pill(label: status.label, color: color),
-                        AppSpacing.gapLg,
-                        Row(
+                  AppSpacing.gapXs,
+                  Row(
+                    children: [
+                      DriverInitials(driver.initials, size: 52),
+                      AppSpacing.gapMd,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: _Stat(label: 'Trips', value: '${driver.tripsCount}')),
-                            Expanded(child: _Stat(label: 'Rating', value: '${driver.rating.toStringAsFixed(1)} ★')),
-                            Expanded(child: _Stat(label: 'Since', value: '${driver.joinedAt.year}')),
+                            Text(driver.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500, letterSpacing: -0.3)),
+                            const SizedBox(height: 2),
+                            Text(driver.phone,
+                                style: TextStyle(fontSize: 12, color: tones.neutral500)),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Pill(label: status.label, color: color),
+                    ],
+                  ),
+                  AppSpacing.gapLg,
+                  StatsGrid(
+                    items: [
+                      StatTile('Trips', '${driver.tripsCount}', AppIcons.trips),
+                      StatTile('Rating', '${driver.rating.toStringAsFixed(1)} ★', AppIcons.star),
+                      StatTile('Since', '${driver.joinedAt.year}', AppIcons.calendar),
+                    ],
                   ),
                   AppSpacing.gapMd,
-                  AppCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        ListTile(leading: const Icon(AppIcons.phone), title: const Text('Phone'), subtitle: Text(driver.phone)),
-                        ListTile(
-                            leading: const Icon(AppIcons.driver), title: const Text('Licence'), subtitle: Text(driver.licenseNo)),
-                        ListTile(
-                            leading: const Icon(AppIcons.calendar),
-                            title: const Text('Joined'),
-                            subtitle: Text(Fmt.date(driver.joinedAt))),
-                      ],
-                    ),
+                  GroupedTile(
+                    inset: 14,
+                    children: [
+                      FactRow(icon: AppIcons.phone, label: 'Phone', value: driver.phone),
+                      FactRow(icon: AppIcons.driver, label: 'Licence', value: driver.licenseNo),
+                      FactRow(icon: AppIcons.calendar, label: 'Joined', value: Fmt.date(driver.joinedAt)),
+                    ],
                   ),
                   const SectionHeader('Assigned vehicle', padding: EdgeInsets.fromLTRB(0, AppSpacing.xl, 0, AppSpacing.sm)),
-                  if (vehicle != null) DeviceCard(view: vehicle) else const AppCard(child: Text('No vehicle assigned')),
+                  if (vehicle != null)
+                    DeviceCard(view: vehicle, dense: true)
+                  else
+                    AppCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.md),
+                      child: Text('No vehicle assigned', style: TextStyle(fontSize: 13, color: tones.neutral500)),
+                    ),
                   AppSpacing.gapMd,
                   Row(
                     children: [
@@ -122,7 +131,7 @@ class DriverDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       if (vehicle != null) ...[
-                        AppSpacing.gapMd,
+                        AppSpacing.gapSm,
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => ref.read(driversProvider.notifier).unassign(driver.id),
@@ -133,7 +142,7 @@ class DriverDetailScreen extends ConsumerWidget {
                     ],
                   ),
                   if (vehicle != null) ...[
-                    AppSpacing.gapMd,
+                    AppSpacing.gapSm,
                     OutlinedButton.icon(
                       onPressed: () => context.push(Routes.deviceTrips(vehicle.id)),
                       icon: const Icon(AppIcons.trips, size: 18),
@@ -148,19 +157,4 @@ class DriverDetailScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      );
 }

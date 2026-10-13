@@ -92,7 +92,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       width: i == _index ? 22 : 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: i == _index ? theme.colorScheme.primary : theme.colorScheme.outline,
+                        color: i == _index ? theme.colorScheme.primary : context.tones.neutral700,
                         borderRadius: AppRadius.pillAll,
                       ),
                     ),
@@ -107,6 +107,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ? _finish
                         : () => _controller.nextPage(
                             duration: AppDurations.slow, curve: Curves.easeOutCubic),
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     child: Text(last ? 'Get started' : 'Next'),
                   ),
                 ),
@@ -144,12 +145,16 @@ class _OnboardingPage extends StatelessWidget {
         children: [
           _Illustration(page: page),
           const SizedBox(height: 40),
-          Text(page.title, textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+          Text(
+            page.title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24, fontWeight: FontWeight.w500),
+          ),
           AppSpacing.gapMd,
           Text(
             page.body,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodyLarge?.copyWith(color: context.tones.neutral500),
           ),
         ],
       ),
@@ -164,7 +169,9 @@ class _Illustration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = page.color;
+    final theme = Theme.of(context);
+    final tones = context.tones;
+    final accent = theme.colorScheme.primary;
     return SizedBox(
       width: 240,
       height: 220,
@@ -175,20 +182,24 @@ class _Illustration extends StatelessWidget {
             Container(
               width: r,
               height: r,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: c.withValues(alpha: 0.06 + (220 - r) / 1500)),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: tones.divider),
+              ),
             ),
           Container(
             width: 84,
             height: 84,
             decoration: BoxDecoration(
-              color: c,
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 10))],
+              color: tones.accent900,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: accent, width: 1.5),
+              boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.35), blurRadius: 40)],
             ),
-            child: Icon(page.icons.first, color: Colors.white, size: 40),
+            child: Icon(page.icons.first, color: tones.accent300, size: 38),
           ),
-          Positioned(left: 18, top: 40, child: _Chip(icon: page.icons[1], color: c)),
-          Positioned(right: 14, bottom: 46, child: _Chip(icon: page.icons[2], color: c)),
+          Positioned(left: 18, top: 40, child: _Chip(icon: page.icons[1], color: tones.tone(page.color))),
+          Positioned(right: 14, bottom: 46, child: _Chip(icon: page.icons[2], color: tones.tone(page.color))),
           Positioned(
             right: 34,
             top: 22,
@@ -205,6 +216,7 @@ class _Illustration extends StatelessWidget {
   }
 }
 
+/// Satellite tile: a surface option tile (large) or a tonal status tag (small).
 class _Chip extends StatelessWidget {
   const _Chip({required this.icon, required this.color, this.small = false});
 
@@ -214,16 +226,18 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tones = context.tones;
     final s = small ? 36.0 : 48.0;
+    final tag = tones.tag(color);
     return Container(
       width: s,
       height: s,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(s * 0.32),
-        boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 12, offset: Offset(0, 4))],
+        color: small ? tag.bg : Theme.of(context).colorScheme.surface,
+        borderRadius: small ? BorderRadius.circular(10) : AppRadius.lgAll,
+        border: small ? null : Border.all(color: tones.divider, width: 1.5),
       ),
-      child: Icon(icon, color: color, size: s * 0.48),
+      child: Icon(icon, color: small ? tag.ink : tones.accent300, size: s * 0.48),
     );
   }
 }

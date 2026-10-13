@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
-/// The standard elevated surface. Borderless, soft shadow in light mode.
+/// The standard surface tile: flat, borderless, on the ground color.
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -44,7 +46,7 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// Section title with optional trailing action.
+/// Uppercase tracked section label with optional trailing action.
 class SectionHeader extends StatelessWidget {
   const SectionHeader(this.title, {super.key, this.action, this.onAction, this.padding});
 
@@ -58,12 +60,24 @@ class SectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: padding ??
-          const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.sm, AppSpacing.sm),
+          const EdgeInsets.fromLTRB(16, 18, 8, 6),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+          Expanded(
+            child: Text(
+              title.toUpperCase(),
+              style: AppTypography.overline.copyWith(color: context.tones.neutral500),
+            ),
+          ),
           if (action != null)
-            TextButton(onPressed: onAction, child: Text(action!)),
+            TextButton(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                textStyle: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5),
+              ),
+              child: Text(action!),
+            ),
         ],
       ),
     );
@@ -84,7 +98,7 @@ class ResponsiveCenter extends StatelessWidget {
       );
 }
 
-/// Small rounded label.
+/// Small tonal tag (`.tag`): tinted ground, deep ink.
 class Pill extends StatelessWidget {
   const Pill({super.key, required this.label, required this.color, this.icon, this.filled = false});
 
@@ -95,12 +109,14 @@ class Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = filled ? Colors.white : color;
+    final tones = context.tones;
+    final tag = tones.tag(color);
+    final fg = filled ? Theme.of(context).colorScheme.surface : tag.ink;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: filled ? color : color.withValues(alpha: 0.12),
-        borderRadius: AppRadius.pillAll,
+        color: filled ? tones.tone(color) : tag.bg,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -116,7 +132,7 @@ class Pill extends StatelessWidget {
   }
 }
 
-/// Rounded square icon container.
+/// Rounded square icon tile, tinted by [color].
 class IconBadge extends StatelessWidget {
   const IconBadge({super.key, required this.icon, required this.color, this.size = 40});
 
@@ -125,13 +141,16 @@ class IconBadge extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.13),
-          borderRadius: BorderRadius.circular(size * 0.3),
-        ),
-        child: Icon(icon, size: size * 0.5, color: color),
-      );
+  Widget build(BuildContext context) {
+    final tag = context.tones.tag(color);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: tag.bg,
+        borderRadius: BorderRadius.circular(size * 0.26),
+      ),
+      child: Icon(icon, size: size * 0.5, color: tag.ink),
+    );
+  }
 }

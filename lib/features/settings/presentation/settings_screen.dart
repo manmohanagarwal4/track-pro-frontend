@@ -42,6 +42,13 @@ const _sections = [
   _Section('about', 'About', AppIcons.info, 'Version and demo mode'),
 ];
 
+const _groups = [
+  ('Account', {'account', 'notifications'}),
+  ('Preferences', {'map', 'tracking', 'units', 'appearance'}),
+  ('Privacy & security', {'security', 'privacy'}),
+  ('Demo', {'demo', 'about'}),
+];
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -50,23 +57,27 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.huge),
         children: [
           ResponsiveCenter(
             child: Padding(
               padding: AppSpacing.screen,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SettingsGroup(children: [
-                    for (final s in _sections)
-                      SettingsTile(
-                        key: Key('settings-${s.id}'),
-                        icon: s.icon,
-                        title: s.title,
-                        subtitle: s.subtitle,
-                        onTap: () => context.push(Routes.settingsSection(s.id)),
-                      ),
-                  ]),
+                  for (final (i, g) in _groups.indexed) ...[
+                    SettingsSectionLabel(g.$1, first: i == 0),
+                    SettingsGroup(children: [
+                      for (final s in _sections.where((s) => g.$2.contains(s.id)))
+                        SettingsTile(
+                          key: Key('settings-${s.id}'),
+                          icon: s.icon,
+                          title: s.title,
+                          subtitle: s.subtitle,
+                          onTap: () => context.push(Routes.settingsSection(s.id)),
+                        ),
+                    ]),
+                  ],
                   AppSpacing.gapXl,
                   const DemoModeNotice(),
                 ],
@@ -232,7 +243,7 @@ class SettingsSectionScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(meta?.title ?? 'Settings')),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.huge),
         children: [
           ResponsiveCenter(child: Padding(padding: AppSpacing.screen, child: body)),
         ],
@@ -276,7 +287,7 @@ class SettingsSectionScreen extends ConsumerWidget {
             subtitle: const Text('Speeds up simulated time for demos'),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: SegmentedButton<double>(
               segments: const [
                 ButtonSegment(value: 1, label: Text('1x')),
@@ -292,7 +303,7 @@ class SettingsSectionScreen extends ConsumerWidget {
         AppSpacing.gapMd,
         Text(
           'Per-device update intervals are set by each device\'s tracking mode (Device → Settings).',
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: context.tones.neutral500),
         ),
       ],
     );
@@ -384,7 +395,14 @@ class SettingsSectionScreen extends ConsumerWidget {
                   content: const Text('Added devices, geofences and alert history will be discarded.'),
                   actions: [
                     TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                    FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reset')),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        foregroundColor: ctx.tones.critInk,
+                        side: BorderSide(color: ctx.tones.crit),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Reset'),
+                    ),
                   ],
                 ),
               );
@@ -427,7 +445,7 @@ class SettingsSectionScreen extends ConsumerWidget {
               Text(
                 'Universal GPS tracking for pets, people, keys, vehicles, taxis, trucks and equipment.',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: context.tones.neutral500),
               ),
             ],
           ),

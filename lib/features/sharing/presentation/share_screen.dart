@@ -56,11 +56,15 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     final view = ref.watch(deviceViewProvider(widget.deviceId));
     final links = ref.watch(shareLinksProvider(widget.deviceId));
     final now = clock.now();
+    final meta = theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: tones.neutral500);
+    const label = EdgeInsets.fromLTRB(2, AppSpacing.xl, 0, AppSpacing.sm);
     return Scaffold(
       appBar: AppBar(title: Text('Share ${view?.name ?? ''}')),
       body: ListView(
@@ -73,28 +77,31 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Permission', style: theme.textTheme.titleSmall),
-                  AppSpacing.gapSm,
+                  const SectionHeader('Permission', padding: EdgeInsets.fromLTRB(2, AppSpacing.xs, 0, AppSpacing.sm)),
                   AppCard(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                    child: RadioGroup<SharePermission>(
-                      groupValue: _permission,
-                      onChanged: (p) => setState(() => _permission = p!),
-                      child: Column(
-                        children: [
-                          for (final p in SharePermission.values)
-                            RadioListTile<SharePermission>(
-                              value: p,
-                              title: Text(p.label),
-                              subtitle: Text(p.description),
-                            ),
-                        ],
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                    child: ListTileTheme.merge(
+                      contentPadding: EdgeInsets.zero,
+                      child: RadioGroup<SharePermission>(
+                        groupValue: _permission,
+                        onChanged: (p) => setState(() => _permission = p!),
+                        child: Column(
+                          children: [
+                            for (final (i, p) in SharePermission.values.indexed) ...[
+                              if (i > 0) const Divider(),
+                              RadioListTile<SharePermission>(
+                                value: p,
+                                controlAffinity: ListTileControlAffinity.trailing,
+                                title: Text(p.label),
+                                subtitle: Text(p.description),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  AppSpacing.gapXl,
-                  Text('Duration', style: theme.textTheme.titleSmall),
-                  AppSpacing.gapSm,
+                  const SectionHeader('Duration', padding: label),
                   SegmentedButton<Duration>(
                     segments: [
                       for (final d in _durations) ButtonSegment(value: d, label: Text('${d.inHours} hour${d.inHours == 1 ? '' : 's'}')),
@@ -105,6 +112,7 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                   AppSpacing.gapXl,
                   FilledButton.icon(
                     key: const Key('create-share'),
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     onPressed: _busy ? null : _create,
                     icon: _busy
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
@@ -119,24 +127,28 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                             key: ValueKey(_created!.id),
                             padding: const EdgeInsets.only(top: AppSpacing.lg),
                             child: AppCard(
-                              color: AppColors.moving.withValues(alpha: 0.1),
+                              padding: const EdgeInsets.all(14),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      const Icon(AppIcons.success, color: AppColors.moving, size: 20),
-                                      AppSpacing.gapSm,
-                                      Text('Share link created.',
-                                          style: theme.textTheme.titleSmall?.copyWith(color: AppColors.moving)),
-                                    ],
+                                  Container(
+                                    padding: const EdgeInsets.all(AppSpacing.md),
+                                    decoration: BoxDecoration(color: tones.okBg, borderRadius: AppRadius.mdAll),
+                                    child: Row(
+                                      children: [
+                                        Icon(AppIcons.success, color: tones.okInk, size: 18),
+                                        AppSpacing.gapSm,
+                                        Text('Share link created.',
+                                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.okInk)),
+                                      ],
+                                    ),
                                   ),
                                   AppSpacing.gapMd,
-                                  SelectableText(_created!.url, style: theme.textTheme.bodyMedium),
-                                  AppSpacing.gapSm,
+                                  SelectableText(_created!.url, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 15)),
+                                  const SizedBox(height: 4),
                                   Text(
                                     '${_created!.permission.label} · expires ${Fmt.dateTime(_created!.expiresAt)}',
-                                    style: theme.textTheme.bodySmall,
+                                    style: meta,
                                   ),
                                   AppSpacing.gapMd,
                                   OutlinedButton.icon(
@@ -149,7 +161,7 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                             ),
                           ),
                   ),
-                  const SectionHeader('Active links', padding: EdgeInsets.fromLTRB(0, AppSpacing.xl, 0, AppSpacing.sm)),
+                  const SectionHeader('Active links', padding: label),
                   links.when(
                     loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
                     error: (e, _) => Text('$e'),
@@ -157,31 +169,39 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                       final active = list.where((l) => l.isActive(now)).toList();
                       if (active.isEmpty) {
                         return Text('No active share links.',
-                            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant));
+                            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13, color: tones.neutral500));
                       }
-                      return Column(
-                        children: [
-                          for (final l in active)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: AppCard(
-                                padding: AppSpacing.cardCompact,
+                      return AppCard(
+                        padding: const EdgeInsets.fromLTRB(14, 2, 4, 2),
+                        child: Column(
+                          children: [
+                            for (final (i, l) in active.indexed)
+                              Container(
+                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                decoration: i == active.length - 1
+                                    ? null
+                                    : BoxDecoration(border: Border(bottom: BorderSide(color: tones.divider))),
                                 child: Row(
                                   children: [
-                                    const IconBadge(icon: AppIcons.link, color: AppColors.iris, size: 36),
+                                    Icon(AppIcons.link, size: 19, color: tones.neutral400),
                                     AppSpacing.gapMd,
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(l.url.replaceFirst('https://', ''),
-                                              maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
-                                          Text('${l.permission.label} · until ${Fmt.dateTime(l.expiresAt)}',
-                                              style: theme.textTheme.bodySmall),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 15)),
+                                          Text('${l.permission.label} · until ${Fmt.dateTime(l.expiresAt)}', style: meta),
                                         ],
                                       ),
                                     ),
-                                    IconButton(onPressed: () => _copy(l.url), icon: const Icon(AppIcons.copy, size: 18)),
+                                    IconButton(
+                                      tooltip: 'Copy',
+                                      onPressed: () => _copy(l.url),
+                                      icon: Icon(AppIcons.copy, size: 18, color: tones.neutral400),
+                                    ),
                                     IconButton(
                                       tooltip: 'Revoke',
                                       onPressed: () async {
@@ -189,13 +209,13 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                                         ref.invalidate(shareLinksProvider(widget.deviceId));
                                         if (_created?.id == l.id) setState(() => _created = null);
                                       },
-                                      icon: const Icon(AppIcons.delete, size: 18, color: AppColors.emergency),
+                                      icon: Icon(AppIcons.delete, size: 18, color: tones.crit),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   ),

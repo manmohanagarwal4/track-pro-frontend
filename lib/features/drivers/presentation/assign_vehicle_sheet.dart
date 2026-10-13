@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_widgets.dart';
 import '../../../data/models/driver.dart';
@@ -31,7 +33,7 @@ class _AssignVehicleSheetState extends ConsumerState<_AssignVehicleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     final views = ref.watch(allDeviceViewsProvider).value ?? const [];
     final vehicles = DeviceQuery(text: _text).apply(views.where((v) => v.type.isVehicle && v.asset != null)).toList()
       ..sort((a, b) {
@@ -46,34 +48,36 @@ class _AssignVehicleSheetState extends ConsumerState<_AssignVehicleSheet> {
         children: [
           Padding(
             padding: AppSpacing.screen,
-            child: Text('Assign vehicle to ${widget.driver.name}', style: theme.textTheme.titleLarge),
+            child: Text('Assign vehicle to ${widget.driver.name}',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500, letterSpacing: -0.4)),
           ),
           AppSpacing.gapMd,
           Padding(
             padding: AppSpacing.screen,
             child: SearchField(hint: 'Search vehicles', onChanged: (t) => setState(() => _text = t)),
           ),
-          AppSpacing.gapMd,
-          if (_busy) const LinearProgressIndicator(),
+          AppSpacing.gapSm,
+          if (_busy) const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: vehicles.isEmpty
                 ? const LoadingView(message: 'Loading vehicles...')
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.xl),
                     itemCount: vehicles.length,
-                    separatorBuilder: (_, _) => AppSpacing.gapSm,
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, indent: AppSpacing.sm, endIndent: AppSpacing.sm, color: tones.divider),
                     itemBuilder: (_, i) {
                       final v = vehicles[i];
                       final current = v.driver?.id == widget.driver.id;
                       return ListTile(
                         key: Key('assign-${v.id}'),
-                        tileColor: theme.colorScheme.surface,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                         leading: DeviceAvatar(v, size: 40),
-                        title: Text(v.name),
+                        title: Text(v.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                         subtitle: Text(
                           v.driver == null ? '${v.registration ?? v.id} · No driver' : '${v.registration ?? v.id} · ${v.driver!.name}',
                         ),
-                        trailing: current ? const Text('Current') : null,
+                        trailing: current ? const Pill(label: 'Current', color: AppColors.iris) : null,
                         onTap: current || _busy
                             ? null
                             : () async {

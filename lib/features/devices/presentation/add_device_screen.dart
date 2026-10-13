@@ -122,65 +122,106 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
+    final cta = _cta();
     return PopScope(
       canPop: _step == 0 || _step == 3,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) setState(() => _step--);
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(_titles[_step]),
-          leading: _step == 3
-              ? null
-              : IconButton(
-                  icon: Icon(_step == 0 ? AppIcons.close : AppIcons.back),
-                  onPressed: () => _step == 0 ? context.pop() : setState(() => _step--),
-                ),
-          automaticallyImplyLeading: false,
-        ),
-        body: ResponsiveCenter(
-          maxWidth: 560,
-          child: Column(
-            children: [
-              if (_step < 3)
+        body: SafeArea(
+          child: ResponsiveCenter(
+            maxWidth: 560,
+            child: Column(
+              children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.xs, AppSpacing.xs, AppSpacing.md, AppSpacing.sm),
                   child: Row(
                     children: [
-                      for (var i = 0; i < 3; i++) ...[
-                        Expanded(
-                          child: AnimatedContainer(
-                            duration: AppDurations.medium,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: i <= _step ? theme.colorScheme.primary : theme.colorScheme.outline,
-                              borderRadius: AppRadius.pillAll,
-                            ),
-                          ),
+                      if (_step == 3)
+                        const SizedBox(width: 48, height: 48)
+                      else
+                        IconButton(
+                          icon: Icon(_step == 0 ? AppIcons.close : AppIcons.back, size: 22, color: theme.colorScheme.onSurface),
+                          onPressed: () => _step == 0 ? context.pop() : setState(() => _step--),
                         ),
-                        if (i < 2) AppSpacing.gapSm,
-                      ],
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(_titles[_step], style: theme.textTheme.titleSmall?.copyWith(fontSize: 15))),
+                      if (_step < 3)
+                        Text('Step ${_step + 1} of 3',
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: tones.neutral500)),
                     ],
                   ),
                 ),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: AppDurations.medium,
-                  transitionBuilder: (child, a) => FadeTransition(
-                    opacity: a,
-                    child: SlideTransition(
-                      position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(a),
-                      child: child,
+                Container(
+                  height: 4,
+                  margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 10),
+                  decoration: BoxDecoration(color: tones.neutral800, borderRadius: BorderRadius.circular(2)),
+                  clipBehavior: Clip.antiAlias,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AnimatedFractionallySizedBox(
+                      duration: AppDurations.medium,
+                      curve: Curves.easeOut,
+                      widthFactor: (_step + 1).clamp(1, 3) / 3,
+                      heightFactor: 1,
+                      child: ColoredBox(color: theme.colorScheme.primary),
                     ),
                   ),
-                  child: KeyedSubtree(key: ValueKey(_step), child: _buildStep(context)),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: AppDurations.medium,
+                    transitionBuilder: (child, a) => FadeTransition(
+                      opacity: a,
+                      child: SlideTransition(
+                        position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(a),
+                        child: child,
+                      ),
+                    ),
+                    child: KeyedSubtree(key: ValueKey(_step), child: _buildStep(context)),
+                  ),
+                ),
+                if (cta != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
+                    decoration: BoxDecoration(border: Border(top: BorderSide(color: tones.divider))),
+                    child: cta,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// The full-width primary action in the bottom bar for the current step.
+  Widget? _cta() {
+    const size = Size.fromHeight(48);
+    return switch (_step) {
+      0 => FilledButton(
+          key: const Key('add-device-continue'),
+          style: FilledButton.styleFrom(minimumSize: size),
+          onPressed: _busy ? null : _verify,
+          child: _busy ? const _Busy(label: 'Verifying tracker...') : const Text('Continue'),
+        ),
+      2 => FilledButton(
+          key: const Key('add-device-submit'),
+          style: FilledButton.styleFrom(minimumSize: size),
+          onPressed: _busy ? null : _add,
+          child: _busy ? const _Busy(label: 'Activating tracker...') : const Text('Add device'),
+        ),
+      3 => FilledButton(
+          key: const Key('add-device-view'),
+          style: FilledButton.styleFrom(minimumSize: size),
+          onPressed: () => context.pushReplacement(Routes.device(_addedId!)),
+          child: Text('Open ${_name.text.trim()}'),
+        ),
+      _ => null,
+    };
   }
 
   Widget _buildStep(BuildContext context) => switch (_step) {
@@ -190,62 +231,110 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
         _ => _successStep(context),
       };
 
-  Widget _errorText(BuildContext context) => _error == null
-      ? const SizedBox.shrink()
-      : Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.md),
-          child: Row(
-            children: [
-              Icon(AppIcons.warning, size: 16, color: Theme.of(context).colorScheme.error),
-              AppSpacing.gapSm,
-              Expanded(
-                child: Text(_error!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error)),
-              ),
-            ],
+  static const _stepPadding = EdgeInsets.fromLTRB(AppSpacing.lg, 6, AppSpacing.lg, AppSpacing.lg);
+
+  Widget _heading(BuildContext context, String title, [String? sub]) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleLarge?.copyWith(fontSize: 22)),
+          if (sub != null) ...[
+            const SizedBox(height: 4),
+            Text(sub, style: theme.textTheme.bodyMedium?.copyWith(color: context.tones.neutral400)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _fieldLabel(BuildContext context, String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, color: context.tones.neutral500)),
+      );
+
+  Widget _errorText(BuildContext context) {
+    if (_error == null) return const SizedBox.shrink();
+    final tones = context.tones;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Row(
+        children: [
+          Icon(AppIcons.warning, size: 16, color: tones.crit),
+          AppSpacing.gapSm,
+          Expanded(
+            child: Text(_error!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: tones.critInk)),
           ),
-        );
+        ],
+      ),
+    );
+  }
 
   Widget _identifyStep(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
+    final accent = theme.colorScheme.primary;
     return ListView(
-      padding: AppSpacing.screenAll,
+      padding: _stepPadding,
       children: [
-        AppCard(
-          onTap: _busy ? null : _scan,
-          child: Column(
-            children: [
-              const IconBadge(icon: AppIcons.qr, color: AppColors.iris, size: 64),
-              AppSpacing.gapMd,
-              Text('Scan QR', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text('Point your camera at the code on the tracker',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-            ],
+        _heading(context, 'Find your tracker', 'Scan the QR code on the back of the tracker or on the box, or type its ID.'),
+        Material(
+          color: tones.neutral900,
+          borderRadius: AppRadius.lgAll,
+          child: InkWell(
+            borderRadius: AppRadius.lgAll,
+            onTap: _busy ? null : _scan,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: AppSpacing.lg),
+              child: Column(
+                children: [
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: accent, width: 2),
+                      boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.3), blurRadius: 30)],
+                    ),
+                    child: Icon(AppIcons.qr, size: 36, color: tones.accent300),
+                  ),
+                  AppSpacing.gapLg,
+                  Text('Scan QR', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text('Point your camera at the code on the tracker',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: tones.neutral400)),
+                ],
+              ),
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
           child: Row(
             children: [
               const Expanded(child: Divider()),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Text('OR', style: theme.textTheme.labelSmall),
+                child: Text('OR', style: theme.textTheme.labelSmall?.copyWith(color: tones.neutral500, letterSpacing: 0.9)),
               ),
               const Expanded(child: Divider()),
             ],
           ),
         ),
-        Text('Enter Device ID', style: theme.textTheme.titleSmall),
-        AppSpacing.gapSm,
+        _fieldLabel(context, 'Enter Device ID'),
         TextField(
           key: const Key('add-device-id'),
           controller: _id,
           textCapitalization: TextCapitalization.characters,
           onSubmitted: (_) => _verify(),
-          decoration: const InputDecoration(hintText: 'e.g. DEMO-001', prefixIcon: Icon(AppIcons.tracker, size: 20)),
+          decoration: InputDecoration(
+            hintText: 'e.g. DEMO-001',
+            prefixIcon: Icon(AppIcons.tracker, size: 20, color: tones.neutral400),
+          ),
         ),
         AppSpacing.gapSm,
         Wrap(
@@ -258,59 +347,86 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           ],
         ),
         _errorText(context),
-        AppSpacing.gapXl,
-        FilledButton(
-          key: const Key('add-device-continue'),
-          onPressed: _busy ? null : _verify,
-          child: _busy ? const _Busy(label: 'Verifying tracker...') : const Text('Continue'),
-        ),
       ],
     );
   }
 
   Widget _typeStep(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
+    final facts = [
+      ('Device ID', _id.text, null),
+      ('Model', _model ?? 'TrackPro tracker', null),
+      ('Status', 'Found', tones.ok),
+    ];
     return ListView(
-      padding: AppSpacing.screenAll,
+      padding: _stepPadding,
       children: [
+        _heading(context, 'What is it attached to?', 'Pick the closest match. You can change the icon later.'),
         AppCard(
-          padding: AppSpacing.cardCompact,
-          child: Row(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          child: Column(
             children: [
-              const Icon(AppIcons.success, color: AppColors.moving, size: 20),
-              AppSpacing.gapMd,
-              Expanded(child: Text('${_id.text} found · ${_model ?? 'TrackPro tracker'}', style: theme.textTheme.bodyMedium)),
+              for (var i = 0; i < facts.length; i++)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: i < facts.length - 1
+                      ? BoxDecoration(border: Border(bottom: BorderSide(color: tones.divider)))
+                      : null,
+                  child: Row(
+                    children: [
+                      Text(facts[i].$1,
+                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: tones.neutral500)),
+                      const Spacer(),
+                      if (facts[i].$3 != null) ...[
+                        Icon(AppIcons.success, size: 14, color: facts[i].$3),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(facts[i].$2,
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(fontSize: 13, color: facts[i].$3 ?? theme.colorScheme.onSurface)),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
         AppSpacing.gapLg,
-        Text('What will this tracker be attached to?', style: theme.textTheme.titleSmall),
-        AppSpacing.gapMd,
         LayoutBuilder(builder: (context, c) {
-          final cols = c.maxWidth > 420 ? 4 : 3;
-          final w = (c.maxWidth - (cols - 1) * AppSpacing.md) / cols;
+          const cols = 4;
+          const gap = AppSpacing.sm;
+          final w = (c.maxWidth - (cols - 1) * gap) / cols;
           return Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
+            spacing: gap,
+            runSpacing: gap,
             children: [
               for (final t in AssetType.selectable)
                 SizedBox(
                   width: w,
                   child: AppCard(
                     key: Key('asset-type-${t.name}'),
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                    radius: AppRadius.mdAll,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
                     onTap: () => setState(() {
                       _type = t;
                       _error = null;
                       _step = 2;
                     }),
-                    border: _type == t ? Border.all(color: theme.colorScheme.primary, width: 1.5) : null,
+                    border: Border.all(
+                      color: _type == t ? theme.colorScheme.primary : AppColors.transparent,
+                      width: 1.5,
+                    ),
                     child: Column(
                       children: [
-                        Icon(AppIcons.asset(t), color: theme.colorScheme.primary, size: 28),
-                        AppSpacing.gapSm,
-                        Text(t == AssetType.item ? 'Other' : t.label,
-                            style: theme.textTheme.labelMedium, textAlign: TextAlign.center),
+                        Icon(AppIcons.asset(t), size: 22, color: theme.colorScheme.onSurface),
+                        const SizedBox(height: 6),
+                        Text(
+                          t == AssetType.item ? 'Other' : t.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
+                        ),
                       ],
                     ),
                   ),
@@ -324,19 +440,34 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   Widget _nameStep(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     final t = _type!;
     return ListView(
-      padding: AppSpacing.screenAll,
+      padding: _stepPadding,
       children: [
-        Center(child: IconBadge(icon: AppIcons.asset(t), color: theme.colorScheme.primary, size: 72)),
+        _heading(context, 'Name your tracker'),
+        AppCard(
+          radius: AppRadius.mdAll,
+          padding: AppSpacing.cardCompact,
+          child: Row(
+            children: [
+              Icon(AppIcons.asset(t), size: 18, color: tones.accent300),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('${t == AssetType.item ? 'Other' : t.label} · ${_id.text}',
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 13)),
+              ),
+            ],
+          ),
+        ),
         AppSpacing.gapLg,
-        Text('Asset Name', style: theme.textTheme.titleSmall),
-        AppSpacing.gapSm,
+        _fieldLabel(context, 'Asset Name'),
         TextField(
           key: const Key('add-device-name'),
           controller: _name,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
+          style: theme.textTheme.bodyLarge?.copyWith(fontSize: 15),
           decoration: InputDecoration(
             hintText: switch (t) {
               AssetType.pet => 'e.g. Bruno',
@@ -350,8 +481,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
         ),
         if (t.usesRegistration) ...[
           AppSpacing.gapLg,
-          Text('Registration number (optional)', style: theme.textTheme.titleSmall),
-          AppSpacing.gapSm,
+          _fieldLabel(context, 'Registration number (optional)'),
           TextField(
             controller: _reg,
             textCapitalization: TextCapitalization.characters,
@@ -359,63 +489,43 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           ),
         ],
         _errorText(context),
-        AppSpacing.gapXl,
-        FilledButton(
-          key: const Key('add-device-submit'),
-          onPressed: _busy ? null : _add,
-          child: _busy ? const _Busy(label: 'Activating tracker...') : const Text('Add device'),
-        ),
       ],
     );
   }
 
   Widget _successStep(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 650),
-              curve: Curves.elasticOut,
-              builder: (_, v, child) => Transform.scale(scale: v, child: child),
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: const BoxDecoration(color: AppColors.moving, shape: BoxShape.circle),
-                child: const Icon(AppIcons.check, color: Colors.white, size: 48),
-              ),
+    final tones = context.tones;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 60, AppSpacing.lg, AppSpacing.lg),
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 650),
+            curve: Curves.elasticOut,
+            builder: (_, v, child) => Transform.scale(scale: v, child: child),
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: tones.ok, width: 1.5)),
+              child: Icon(AppIcons.check, color: tones.ok, size: 30),
             ),
-            AppSpacing.gapXl,
-            Text('Device Added Successfully', style: theme.textTheme.headlineSmall, textAlign: TextAlign.center),
-            AppSpacing.gapSm,
-            Text(
-              '${_name.text.trim()} is now live. Its location will appear on the map within seconds.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                key: const Key('add-device-view'),
-                onPressed: () => context.pushReplacement(Routes.device(_addedId!)),
-                child: Text('Open ${_name.text.trim()}'),
-              ),
-            ),
-            AppSpacing.gapMd,
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(onPressed: _reset, child: const Text('Add another tracker')),
-            ),
-            AppSpacing.gapSm,
-            TextButton(onPressed: () => context.pop(), child: const Text('Done')),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 14),
+        Text('Device Added Successfully', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 14),
+        Text(
+          '${_name.text.trim()} is now live. Its location will appear on the map within seconds.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: tones.neutral400),
+        ),
+        const SizedBox(height: 28),
+        OutlinedButton(onPressed: _reset, child: const Text('Add another tracker')),
+        AppSpacing.gapSm,
+        TextButton(onPressed: () => context.pop(), child: const Text('Done')),
+      ],
     );
   }
 }

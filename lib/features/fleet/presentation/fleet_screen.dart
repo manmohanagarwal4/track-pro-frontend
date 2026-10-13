@@ -7,12 +7,13 @@ import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../data/models/enums.dart';
 import '../../../domain/device_query.dart';
+import '../../../domain/device_status_engine.dart';
 import '../../../domain/device_view.dart';
+import '../../dashboard/presentation/widgets/dashboard_widgets.dart';
 import '../../devices/application/devices_controller.dart';
 import '../../devices/presentation/widgets/device_card.dart';
 import '../../map/presentation/widgets/tracker_map.dart';
@@ -45,83 +46,106 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
         _visible = pageSize;
       });
 
+  static Color _filterColor(StatusFilter f) => switch (f) {
+        StatusFilter.all => AppColors.iris,
+        StatusFilter.online => AppColors.stationary,
+        StatusFilter.offline => AppColors.offline,
+        StatusFilter.moving => AppColors.moving,
+        StatusFilter.idle => AppColors.idle,
+        StatusFilter.alert => AppColors.emergency,
+      };
+
   @override
   Widget build(BuildContext context) {
     final views = ref.watch(deviceViewsProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fleet'),
-        actions: [
-          IconButton(
-            tooltip: 'Drivers',
-            onPressed: () => context.push(Routes.drivers),
-            icon: const Icon(AppIcons.driver),
-          ),
-          IconButton(
-            tooltip: _showMap ? 'List view' : 'Map view',
-            onPressed: () => setState(() => _showMap = !_showMap),
-            icon: Icon(_showMap ? AppIcons.devices : AppIcons.map),
-          ),
-        ],
-      ),
-      body: AsyncView<List<DeviceView>>(
-        value: views,
-        onRetry: () => ref.invalidate(devicesProvider),
-        loading: const SkeletonList(message: 'Loading fleet...'),
-        data: (all) {
-          final vehicles = all.where((v) => v.type.isVehicle || v.type == AssetType.equipment).toList();
-          final counts = DashboardCounts.of(vehicles);
-          final list = _query.apply(vehicles);
-          return ResponsiveCenter(
-            maxWidth: 1000,
-            child: Column(
-              children: [
-                Padding(
-                  padding: AppSpacing.screen,
-                  child: _Overview(counts: counts, onFilter: (f) => _setQuery(_query.copyWith(status: f))),
-                ),
-                AppSpacing.gapMd,
-                Padding(
-                  padding: AppSpacing.screen,
-                  child: SearchField(
-                    fieldKey: const Key('fleet-search'),
-                    controller: _search,
-                    hint: 'Search vehicle, plate or driver',
-                    onChanged: (t) => _setQuery(_query.copyWith(text: t)),
+      body: SafeArea(
+        bottom: false,
+        child: ResponsiveCenter(
+          maxWidth: 1000,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ScreenTitle(
+                'Fleet',
+                actions: [
+                  IconButton(
+                    tooltip: 'Drivers',
+                    onPressed: () => context.push(Routes.drivers),
+                    icon: const Icon(AppIcons.driver, size: 22),
                   ),
-                ),
-                AppSpacing.gapSm,
-                ChipFilterBar<StatusFilter>(
-                  values: StatusFilter.values,
-                  selected: _query.status,
-                  label: (s) => s.label,
-                  onSelected: (s) => _setQuery(_query.copyWith(status: s)),
-                ),
-                AppSpacing.gapSm,
-                Expanded(
-                  child: _showMap
-                      ? Padding(
-                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-                          child: ClipRRect(
-                            borderRadius: AppRadius.lgAll,
-                            child: TrackerMap(
-                              controller: _map,
-                              devices: list,
-                              clustering: true,
-                              onDeviceTap: (id) => context.push(Routes.device(id)),
-                            ),
-                          ),
-                        )
-                      : _PagedList(
-                          list: list,
-                          visible: _visible,
-                          onLoadMore: () => setState(() => _visible += pageSize),
+                  IconButton(
+                    tooltip: _showMap ? 'List view' : 'Map view',
+                    onPressed: () => setState(() => _showMap = !_showMap),
+                    icon: Icon(_showMap ? AppIcons.devices : AppIcons.map, size: 22),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: AsyncView<List<DeviceView>>(
+                  value: views,
+                  onRetry: () => ref.invalidate(devicesProvider),
+                  loading: const SkeletonList(message: 'Loading fleet...'),
+                  data: (all) {
+                    final vehicles = all.where((v) => v.type.isVehicle || v.type == AssetType.equipment).toList();
+                    final counts = DashboardCounts.of(vehicles);
+                    final list = _query.apply(vehicles);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: AppSpacing.screen,
+                          child: _Overview(counts: counts, onFilter: (f) => _setQuery(_query.copyWith(status: f))),
                         ),
+                        AppSpacing.gapMd,
+                        Padding(
+                          padding: AppSpacing.screen,
+                          child: SearchField(
+                            fieldKey: const Key('fleet-search'),
+                            controller: _search,
+                            hint: 'Search vehicle, plate or driver',
+                            onChanged: (t) => _setQuery(_query.copyWith(text: t)),
+                          ),
+                        ),
+                        AppSpacing.gapMd,
+                        DotFilterBar<StatusFilter>(
+                          values: StatusFilter.values,
+                          selected: _query.status,
+                          label: (s) => s.label,
+                          color: _filterColor,
+                          count: (s) => vehicles.where((v) => DeviceStatusEngine.matchesFilter(v.status, s)).length,
+                          onSelected: (s) => _setQuery(_query.copyWith(status: s)),
+                        ),
+                        AppSpacing.gapSm,
+                        Expanded(
+                          child: _showMap
+                              ? Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.bottomSafe),
+                                  child: ClipRRect(
+                                    borderRadius: AppRadius.lgAll,
+                                    child: TrackerMap(
+                                      controller: _map,
+                                      devices: list,
+                                      clustering: true,
+                                      onDeviceTap: (id) => context.push(Routes.device(id)),
+                                    ),
+                                  ),
+                                )
+                              : _PagedList(
+                                  list: list,
+                                  visible: _visible,
+                                  onLoadMore: () => setState(() => _visible += pageSize),
+                                ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
-              ],
-            ),
-          );
-        },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -135,55 +159,38 @@ class _Overview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     final items = [
       ('Moving', counts.moving, AppColors.moving, StatusFilter.moving),
       ('Idle', counts.idle, AppColors.idle, StatusFilter.idle),
       ('Stopped', counts.stopped, AppColors.stationary, StatusFilter.idle),
       ('Offline', counts.offline, AppColors.offline, StatusFilter.offline),
     ];
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text('Fleet Overview',
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
-              ),
-              Text('${counts.total}', style: AppTypography.metric),
-              const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('Vehicles', style: theme.textTheme.bodySmall),
-              ),
-            ],
-          ),
-          AppSpacing.gapMd,
-          Row(
-            children: [
-              for (final i in items)
-                Expanded(
-                  child: InkWell(
-                    borderRadius: AppRadius.mdAll,
-                    onTap: () => onFilter(i.$4),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                      child: Column(
-                        children: [
-                          Text('${i.$2}', style: AppTypography.metricSmall.copyWith(color: i.$3)),
-                          Text(i.$1, style: theme.textTheme.bodySmall),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Expanded(
+              child: Text('Fleet Overview',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, color: tones.neutral500)),
+            ),
+            Text('${counts.total}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            const SizedBox(width: 4),
+            Text('Vehicles', style: TextStyle(fontSize: 12, color: tones.neutral500)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        KpiRow(
+          children: [
+            for (final i in items) SummaryTile(label: i.$1, value: i.$2, color: i.$3, onTap: () => onFilter(i.$4)),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -200,6 +207,7 @@ class _PagedList extends StatelessWidget {
     if (list.isEmpty) {
       return const EmptyView(icon: AppIcons.fleet, title: 'No vehicles match', message: 'Try clearing the search or filters.');
     }
+    final tones = context.tones;
     final shown = list.length < visible ? list.length : visible;
     final hasMore = shown < list.length;
     return NotificationListener<ScrollNotification>(
@@ -207,20 +215,28 @@ class _PagedList extends StatelessWidget {
         if (hasMore && n.metrics.extentAfter < 300) onLoadMore();
         return false;
       },
-      child: ListView.separated(
+      child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.bottomSafe),
-        itemCount: shown + 1,
-        separatorBuilder: (_, _) => AppSpacing.gapMd,
+        itemCount: shown + 2,
         itemBuilder: (context, i) {
-          if (i == shown) {
-            return Center(
-              child: hasMore
-                  ? TextButton(onPressed: onLoadMore, child: Text('Load more (${list.length - shown} remaining)'))
-                  : Text('Showing all ${list.length} vehicles', style: Theme.of(context).textTheme.bodySmall),
+          if (i == 0) return GroupLabel('Vehicles', trailing: '${list.length}');
+          if (i == shown + 1) {
+            return Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: Center(
+                child: hasMore
+                    ? TextButton(onPressed: onLoadMore, child: Text('Load more (${list.length - shown} remaining)'))
+                    : Text('Showing all ${list.length} vehicles',
+                        style: TextStyle(fontSize: 12, color: tones.neutral500)),
+              ),
             );
           }
-          final v = list[i];
-          return DeviceCard(key: ValueKey(v.id), view: v);
+          final v = list[i - 1];
+          return GroupedItem(
+            first: i == 1,
+            last: i == shown,
+            child: DeviceCard(key: ValueKey(v.id), view: v, dense: true),
+          );
         },
       ),
     );

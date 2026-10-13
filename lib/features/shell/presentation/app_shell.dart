@@ -1,8 +1,11 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/trackpro_logo.dart';
@@ -77,23 +80,35 @@ class AppShell extends ConsumerWidget {
                   NavigationRailDestination(icon: icon(item), label: Text(item.label)),
               ],
             ),
-            VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outline),
+            VerticalDivider(width: 1, color: context.tones.divider),
             Expanded(child: child),
           ],
         ),
       );
     }
 
+    // Frosted glass tab bar over the content, hairline on top.
     return Scaffold(
+      extendBody: true,
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: go,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: [
-          for (final item in items)
-            NavigationDestination(icon: icon(item), label: item.label, tooltip: item.label),
-        ],
+      bottomNavigationBar: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: context.tones.divider)),
+            ),
+            child: NavigationBar(
+              selectedIndex: index,
+              onDestinationSelected: go,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              destinations: [
+                for (final item in items)
+                  NavigationDestination(icon: icon(item), label: item.label, tooltip: item.label),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

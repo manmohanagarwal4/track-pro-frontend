@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/status_style.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/geo_utils.dart';
@@ -68,45 +69,53 @@ class TelemetryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     return LayoutBuilder(
       builder: (context, c) {
-        final cols = c.maxWidth > 600 ? 4 : 2;
-        final w = (c.maxWidth - (cols - 1) * AppSpacing.md) / cols;
+        final cols = c.maxWidth > 600 ? 4 : 3;
+        const gap = AppSpacing.sm;
+        final w = (c.maxWidth - (cols - 1) * gap) / cols;
         return Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
+          spacing: gap,
+          runSpacing: gap,
           children: [
             for (final i in items)
               SizedBox(
                 width: w,
                 child: AppCard(
+                  radius: AppRadius.mdAll,
                   padding: AppSpacing.cardCompact,
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(i.icon, size: 18, color: i.color ?? theme.colorScheme.onSurfaceVariant),
-                      AppSpacing.gapMd,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(i.label,
-                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                            const SizedBox(height: 2),
-                            AnimatedSwitcher(
-                              duration: AppDurations.fast,
-                              child: Text(
-                                i.value,
-                                key: ValueKey(i.value),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: i.color,
-                                  fontFeatures: const [FontFeature.tabularFigures()],
-                                ),
-                              ),
-                            ),
-                          ],
+                      AnimatedSwitcher(
+                        duration: AppDurations.fast,
+                        child: Text(
+                          i.value,
+                          key: ValueKey(i.value),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: i.color == null ? null : tones.tone(i.color!),
+                            fontFeatures: AppTypography.tabular,
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(i.icon, size: 12, color: tones.neutral500),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              i.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall
+                                  ?.copyWith(fontWeight: FontWeight.w400, color: tones.neutral500),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

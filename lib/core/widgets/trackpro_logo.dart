@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// TrackPro mark: a location pin with signal arcs on the brand gradient.
+/// TrackPro mark: an accent-outlined rounded square holding a pin with
+/// signal arcs.
 class TrackProMark extends StatelessWidget {
   const TrackProMark({super.key, this.size = 48, this.rounded = true});
 
@@ -15,24 +16,41 @@ class TrackProMark extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
         width: size,
         height: size,
-        child: CustomPaint(painter: TrackProMarkPainter(rounded: rounded)),
+        child: CustomPaint(
+          painter: TrackProMarkPainter(
+            rounded: rounded,
+            outline: Theme.of(context).colorScheme.primary,
+            glyph: AppTones.of(context).accent300,
+          ),
+        ),
       );
 }
 
 class TrackProMarkPainter extends CustomPainter {
-  const TrackProMarkPainter({this.rounded = true});
+  const TrackProMarkPainter({
+    this.rounded = true,
+    this.outline = AppColors.irisLight,
+    this.glyph = AppColors.signalLight,
+  });
 
   final bool rounded;
+  final Color outline;
+  final Color glyph;
 
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width;
     final rect = Offset.zero & size;
-    final bg = Paint()..shader = AppColors.brandGradient.createShader(rect);
+    final stroke = math.max(1.5, s * 0.03);
+    final box = rect.deflate(stroke / 2);
+    final border = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..color = outline;
     if (rounded) {
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(s * 0.28)), bg);
+      canvas.drawRRect(RRect.fromRectAndRadius(box, Radius.circular(s * 0.29)), border);
     } else {
-      canvas.drawRect(rect, bg);
+      canvas.drawRect(box, border);
     }
 
     // Pin: a teardrop whose sides are tangent to the head circle.
@@ -46,8 +64,11 @@ class TrackProMarkPainter extends CustomPainter {
       ..lineTo(cx - r * math.cos(alpha), cy + r * math.sin(alpha))
       ..arcTo(Rect.fromCircle(center: Offset(cx, cy), radius: r), math.pi - alpha, math.pi + 2 * alpha, false)
       ..close();
-    canvas.drawPath(pin, Paint()..color = Colors.white);
-    canvas.drawCircle(Offset(cx, cy), r * 0.42, Paint()..color = AppColors.irisDeep);
+    // Punch the pin's eye out on its own layer so the ground shows through.
+    canvas.saveLayer(rect, Paint());
+    canvas.drawPath(pin, Paint()..color = glyph);
+    canvas.drawCircle(Offset(cx, cy), r * 0.42, Paint()..blendMode = BlendMode.clear);
+    canvas.restore();
 
     // Signal arcs
     final arc = Paint()
@@ -57,12 +78,13 @@ class TrackProMarkPainter extends CustomPainter {
     final origin = Offset(cx, cy);
     for (final k in [1.7, 2.3]) {
       canvas.drawArc(Rect.fromCircle(center: origin, radius: r * k), -math.pi * 0.40, math.pi * 0.32, false,
-          arc..color = Colors.white.withValues(alpha: k < 2 ? 0.95 : 0.6));
+          arc..color = glyph.withValues(alpha: k < 2 ? 0.95 : 0.6));
     }
   }
 
   @override
-  bool shouldRepaint(TrackProMarkPainter old) => old.rounded != rounded;
+  bool shouldRepaint(TrackProMarkPainter old) =>
+      old.rounded != rounded || old.outline != outline || old.glyph != glyph;
 }
 
 class TrackProLogo extends StatelessWidget {
@@ -87,8 +109,8 @@ class TrackProLogo extends StatelessWidget {
             ]),
             style: theme.textTheme.titleLarge?.copyWith(
               fontSize: size * 0.62,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.5,
             ),
           ),
         ],

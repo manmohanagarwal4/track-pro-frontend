@@ -4,13 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../data/models/trip.dart';
 import '../../../domain/trip_calculator.dart';
+import '../../dashboard/presentation/widgets/dashboard_widgets.dart';
 import '../../devices/application/devices_controller.dart';
 import '../../settings/application/settings_controller.dart';
 import '../application/trips_providers.dart';
@@ -54,7 +57,7 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
               _query = _build();
             }),
           ),
-          AppSpacing.gapMd,
+          AppSpacing.gapSm,
           Expanded(
             child: AsyncView<List<Trip>>(
               value: trips,
@@ -70,21 +73,27 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
                 }
                 final total = list.fold<double>(0, (a, t) => a + t.stats.distanceKm);
                 final time = list.fold<Duration>(Duration.zero, (a, t) => a + t.stats.duration);
+                final entries = groupTripsByDay(list);
                 return ResponsiveCenter(
-                  child: ListView.separated(
+                  child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.huge),
-                    itemCount: list.length + 1,
-                    separatorBuilder: (_, _) => AppSpacing.gapMd,
+                    itemCount: entries.length + 1,
                     itemBuilder: (_, i) {
                       if (i == 0) {
                         return Text(
                           '${list.length} trips · ${Fmt.distance(total, unit, decimals: 1)} · ${Fmt.duration(time)}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: TextStyle(fontSize: 12, color: context.tones.neutral500),
                         );
                       }
-                      final t = list[i - 1];
+                      final e = entries[i - 1];
+                      if (e.day != null) {
+                        return Padding(padding: const EdgeInsets.only(top: AppSpacing.sm), child: GroupLabel(e.day!));
+                      }
+                      final t = e.trip!;
                       return TripCard(
                         trip: t,
+                        first: e.first,
+                        last: e.last,
                         onTap: () => context.push(Routes.trip(t.deviceId, t.id), extra: t),
                       );
                     },
@@ -102,6 +111,7 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
 /// Re-computes stats for a trip (shows the calculation is real, not stored).
 TripStats recompute(Trip t) => TripCalculator.compute(t.points);
 
+/// Start / end of a trip as a facts-style list.
 class TripTimeline extends StatelessWidget {
   const TripTimeline({super.key, required this.trip});
 
@@ -109,39 +119,37 @@ class TripTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _row(context, AppIcons.play, 'Start', trip.startName, Fmt.time(trip.start), theme.colorScheme.primary),
-          Padding(
-            padding: const EdgeInsets.only(left: 9),
-            child: Container(width: 2, height: 22, color: theme.colorScheme.outline),
-          ),
-          _row(context, AppIcons.flag, 'End', trip.endName, Fmt.time(trip.end), theme.colorScheme.error),
-        ],
-      ),
+    final tones = context.tones;
+    return GroupedTile(
+      inset: 14,
+      children: [
+        _row(context, AppIcons.play, 'Start', trip.startName, Fmt.time(trip.start), tones.ok),
+        _row(context, AppIcons.flag, 'End', trip.endName, Fmt.time(trip.end), tones.crit),
+      ],
     );
   }
 
   Widget _row(BuildContext context, IconData icon, String label, String place, String time, Color color) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: color),
-        AppSpacing.gapMd,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-              Text(place, style: theme.textTheme.titleSmall),
-            ],
+    final tones = context.tones;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 11, color: tones.neutral500)),
+                Text(place, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),
+              ],
+            ),
           ),
-        ),
-        Text(time, style: theme.textTheme.labelLarge),
-      ],
+          AppSpacing.gapSm,
+          Text(time, style: TextStyle(fontSize: 13, color: tones.neutral400, fontFeatures: AppTypography.tabular)),
+        ],
+      ),
     );
   }
 }

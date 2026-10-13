@@ -9,78 +9,96 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../data/models/trip.dart';
+import '../../../dashboard/presentation/widgets/dashboard_widgets.dart';
 import '../../../settings/application/settings_controller.dart';
 import '../../application/trips_providers.dart';
 
+/// Trip row (`is.history`): time | route | distance, inside a grouped tile.
 class TripCard extends ConsumerWidget {
-  const TripCard({super.key, required this.trip, required this.onTap, this.deviceName});
+  const TripCard({
+    super.key,
+    required this.trip,
+    required this.onTap,
+    this.deviceName,
+    this.first = true,
+    this.last = true,
+  });
 
   final Trip trip;
   final VoidCallback onTap;
   final String? deviceName;
+  final bool first;
+  final bool last;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     final unit = ref.watch(settingsProvider.select((s) => s.unit));
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    return AppCard(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final meta = [?deviceName, Fmt.duration(trip.stats.duration)].join(' · ');
+    return GroupedItem(
+      first: first,
+      last: last,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 11),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(Fmt.dayLabel(trip.start), style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('${Fmt.time(trip.start)} → ${Fmt.time(trip.end)}',
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: muted),
-              ),
-              if (deviceName != null)
-                Flexible(
-                  child: Text(deviceName!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: theme.textTheme.labelMedium),
+              SizedBox(
+                width: 74,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Fmt.time(trip.start),
+                        style: TextStyle(fontSize: 13, color: tones.neutral500, fontFeatures: AppTypography.tabular)),
+                    const SizedBox(height: 2),
+                    Text(Fmt.time(trip.end),
+                        style: TextStyle(fontSize: 11, color: tones.neutral400, fontFeatures: AppTypography.tabular)),
+                  ],
                 ),
-            ],
-          ),
-          AppSpacing.gapMd,
-          Row(
-            children: [
-              Column(
-                children: [
-                  const Icon(AppIcons.circle, size: 12, color: AppColors.moving),
-                  Container(width: 2, height: 18, color: theme.colorScheme.outline),
-                  const Icon(AppIcons.pin, size: 14, color: AppColors.emergency),
-                ],
               ),
               AppSpacing.gapMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(trip.startName, style: theme.textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 10),
-                    Text(trip.endName, style: theme.textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('${trip.startName} → ${trip.endName}',
+                        maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text(meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: tones.neutral500)),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(Fmt.distance(trip.stats.distanceKm, unit, decimals: 1), style: AppTypography.metricSmall),
-                  Text(Fmt.duration(trip.stats.duration), style: muted),
-                ],
-              ),
+              AppSpacing.gapMd,
+              Text(Fmt.distance(trip.stats.distanceKm, unit, decimals: 1),
+                  style: TextStyle(fontSize: 13, color: tones.neutral400, fontFeatures: AppTypography.tabular)),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
+
+/// A day header or a trip row, for day-grouped trip lists.
+typedef TripEntry = ({String? day, Trip? trip, bool first, bool last});
+
+/// Splits [trips] into runs of the same day, each preceded by a header entry.
+List<TripEntry> groupTripsByDay(List<Trip> trips) {
+  String day(Trip t) => Fmt.dayLabel(t.start);
+  final out = <TripEntry>[];
+  for (var i = 0; i < trips.length; i++) {
+    final d = day(trips[i]);
+    final first = i == 0 || day(trips[i - 1]) != d;
+    final last = i == trips.length - 1 || day(trips[i + 1]) != d;
+    if (first) out.add((day: d, trip: null, first: false, last: false));
+    out.add((day: null, trip: trips[i], first: first, last: last));
+  }
+  return out;
 }
 
 class StatTile {
@@ -91,6 +109,7 @@ class StatTile {
   final IconData icon;
 }
 
+/// Grid of small stat tiles: value above an 11px muted label.
 class StatsGrid extends StatelessWidget {
   const StatsGrid({super.key, required this.items});
 
@@ -98,36 +117,34 @@ class StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     return LayoutBuilder(builder: (context, c) {
-      final cols = c.maxWidth > 560 ? 4 : 2;
-      final w = (c.maxWidth - (cols - 1) * AppSpacing.md) / cols;
+      final max = c.maxWidth > 560 ? 6 : 3;
+      final cols = items.length < max ? items.length : max;
+      const gap = AppSpacing.sm;
+      final w = (c.maxWidth - (cols - 1) * gap) / cols;
       return Wrap(
-        spacing: AppSpacing.md,
-        runSpacing: AppSpacing.md,
+        spacing: gap,
+        runSpacing: gap,
         children: [
           for (final i in items)
             SizedBox(
               width: w,
               child: AppCard(
+                radius: AppRadius.mdAll,
                 padding: AppSpacing.cardCompact,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(i.icon, size: 15, color: theme.colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(i.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(i.value, style: AppTypography.metricSmall),
+                    Text(i.value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.metricSmall.copyWith(fontSize: 17)),
+                    const SizedBox(height: 2),
+                    Text(i.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: tones.neutral500)),
                   ],
                 ),
               ),
@@ -178,7 +195,9 @@ class DateRangeSelector extends StatelessWidget {
               label: Text(p == DateRangePreset.custom && preset == p && custom != null
                   ? '${Fmt.dateShort(custom!.start)} – ${Fmt.dateShort(custom!.end)}'
                   : p.label),
-              avatar: p == DateRangePreset.custom ? const Icon(AppIcons.calendar, size: 16) : null,
+              avatar: p == DateRangePreset.custom
+                  ? Icon(AppIcons.calendar, size: 14, color: context.tones.neutral400)
+                  : null,
               selected: p == preset,
               onSelected: (_) async {
                 if (p != DateRangePreset.custom) {
@@ -196,7 +215,7 @@ class DateRangeSelector extends StatelessWidget {
                 if (picked != null) onChanged(p, picked);
               },
             ),
-            AppSpacing.gapSm,
+            const SizedBox(width: 6),
           ],
         ],
       ),

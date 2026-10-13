@@ -11,6 +11,7 @@ import '../../../core/widgets/state_views.dart';
 import '../../../data/models/driver.dart';
 import '../../../data/models/enums.dart';
 import '../../../domain/device_view.dart';
+import '../../dashboard/presentation/widgets/dashboard_widgets.dart';
 import '../../devices/application/devices_controller.dart';
 import '../../devices/presentation/widgets/device_card.dart';
 import '../application/drivers_controller.dart';
@@ -83,10 +84,12 @@ class _DriversScreenState extends ConsumerState<DriversScreen> {
                   padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
                   child: SearchField(hint: 'Search driver or vehicle', onChanged: (t) => setState(() => _text = t)),
                 ),
-                ChipFilterBar<DriverStatus?>(
+                DotFilterBar<DriverStatus?>(
                   values: const [null, ...DriverStatus.values],
                   selected: _status,
                   label: (s) => s?.label ?? 'All',
+                  color: (s) => s == null ? null : driverStatusColor(s),
+                  count: (s) => s == null ? all.length : all.where((d) => driverStatus(d, views) == s).length,
                   onSelected: (s) => setState(() => _status = s),
                 ),
                 AppSpacing.gapMd,
@@ -101,11 +104,15 @@ class _DriversScreenState extends ConsumerState<DriversScreen> {
                         )
                       : list.isEmpty
                       ? const EmptyView(icon: AppIcons.users, title: 'No drivers found', message: 'Try a different search.')
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.huge),
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.bottomSafe),
                           itemCount: list.length,
-                          separatorBuilder: (_, _) => AppSpacing.gapMd,
-                          itemBuilder: (_, i) => DriverCard(driver: list[i], views: views),
+                          itemBuilder: (_, i) => DriverCard(
+                            driver: list[i],
+                            views: views,
+                            first: i == 0,
+                            last: i == list.length - 1,
+                          ),
                         ),
                 ),
               ],
@@ -117,74 +124,94 @@ class _DriversScreenState extends ConsumerState<DriversScreen> {
   }
 }
 
+/// Initials in a quiet circle (`is.members`).
+class DriverInitials extends StatelessWidget {
+  const DriverInitials(this.initials, {super.key, this.size = 36});
+
+  final String initials;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: context.tones.neutral800, shape: BoxShape.circle),
+        child: Text(initials, style: TextStyle(fontSize: size / 3, fontWeight: FontWeight.w500)),
+      );
+}
+
+/// Driver row inside a grouped surface tile.
 class DriverCard extends ConsumerWidget {
-  const DriverCard({super.key, required this.driver, required this.views});
+  const DriverCard({super.key, required this.driver, required this.views, this.first = true, this.last = true});
 
   final Driver driver;
   final List<DeviceView> views;
+  final bool first;
+  final bool last;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     final status = driverStatus(driver, views);
     final color = driverStatusColor(status);
     final vehicle = views.where((v) => v.asset?.id == driver.assetId).firstOrNull;
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    return AppCard(
-      onTap: () => context.push(Routes.driver(driver.id)),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 23,
-            backgroundColor: color.withValues(alpha: 0.15),
-            child: Text(driver.initials, style: theme.textTheme.labelLarge?.copyWith(color: color)),
-          ),
-          AppSpacing.gapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+    return GroupedItem(
+      first: first,
+      last: last,
+      child: InkWell(
+        onTap: () => context.push(Routes.driver(driver.id)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.md, 10, 0, 10),
+          child: Row(
+            children: [
+              DriverInitials(driver.initials),
+              AppSpacing.gapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(child: Text(driver.name, style: theme.textTheme.titleSmall, overflow: TextOverflow.ellipsis)),
-                    const SizedBox(width: 6),
-                    Pill(label: status.label, color: color),
+                    Text(driver.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(height: 1),
+                    Text(
+                      'Vehicle: ${vehicle?.name ?? 'Unassigned'} · Trips: ${driver.tripsCount}',
+                      style: TextStyle(fontSize: 12, color: tones.neutral500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(driver.phone, style: TextStyle(fontSize: 12, color: tones.neutral400)),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  'Vehicle: ${vehicle?.name ?? 'Unassigned'} · Trips: ${driver.tripsCount}',
-                  style: muted,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(driver.phone, style: muted),
-              ],
-            ),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (v) async {
-              if (v == 'view') context.push(Routes.driver(driver.id));
-              if (v == 'assign') await showAssignVehicleSheet(context, driver);
-              if (v == 'unassign') await ref.read(driversProvider.notifier).unassign(driver.id);
-              if (v == 'edit' && context.mounted) await showDriverEditor(context, driver: driver);
-              if (v == 'delete' && context.mounted) {
-                await confirmDeleteDriver(context, ref, driver, vehicleName: vehicle?.name);
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'view', child: Text('View')),
-              const PopupMenuItem(value: 'edit', child: Text('Edit')),
-              PopupMenuItem(value: 'assign', child: Text(driver.assetId == null ? 'Assign Vehicle' : 'Change Vehicle')),
-              if (driver.assetId != null) const PopupMenuItem(value: 'unassign', child: Text('Unassign')),
-              PopupMenuItem(
-                key: Key('driver-delete-${driver.id}'),
-                value: 'delete',
-                child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ),
+              AppSpacing.gapSm,
+              Pill(label: status.label, color: color),
+              PopupMenuButton<String>(
+                icon: Icon(AppIcons.more, size: 18, color: tones.neutral400),
+                onSelected: (v) async {
+                  if (v == 'view') context.push(Routes.driver(driver.id));
+                  if (v == 'assign') await showAssignVehicleSheet(context, driver);
+                  if (v == 'unassign') await ref.read(driversProvider.notifier).unassign(driver.id);
+                  if (v == 'edit' && context.mounted) await showDriverEditor(context, driver: driver);
+                  if (v == 'delete' && context.mounted) {
+                    await confirmDeleteDriver(context, ref, driver, vehicleName: vehicle?.name);
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'view', child: Text('View')),
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'assign', child: Text(driver.assetId == null ? 'Assign Vehicle' : 'Change Vehicle')),
+                  if (driver.assetId != null) const PopupMenuItem(value: 'unassign', child: Text('Unassign')),
+                  PopupMenuItem(
+                    key: Key('driver-delete-${driver.id}'),
+                    value: 'delete',
+                    child: Text('Delete', style: TextStyle(color: tones.crit)),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

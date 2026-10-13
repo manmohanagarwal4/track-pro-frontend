@@ -57,10 +57,10 @@ class EmptyView extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(icon, size: 32, color: theme.colorScheme.primary),
+              child: Icon(icon, size: 32, color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8)),
             ),
             AppSpacing.gapLg,
             Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),

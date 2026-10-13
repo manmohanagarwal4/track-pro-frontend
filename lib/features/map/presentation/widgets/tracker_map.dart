@@ -1,9 +1,12 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/di/providers.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../data/mock/geo/ncr_geo.dart';
@@ -108,7 +111,7 @@ class TrackerMap extends ConsumerWidget {
   }
 }
 
-/// Round floating map button.
+/// Glass control floating over the map.
 class MapButton extends StatelessWidget {
   const MapButton({
     super.key,
@@ -126,23 +129,55 @@ class MapButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final tones = context.tones;
     return Tooltip(
       message: tooltip ?? '',
-      child: Container(
+      child: MapGlass(
         width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: active ? scheme.primary : scheme.surface,
-          borderRadius: AppRadius.mdAll,
-          boxShadow: AppShadows.floating(theme.brightness),
+        color: active ? tones.accent800 : null,
+        child: InkWell(
+          borderRadius: AppRadius.lgAll,
+          onTap: onPressed,
+          child: Icon(icon, size: 20, color: active ? tones.accent100 : theme.colorScheme.onSurface),
         ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: AppRadius.mdAll,
-            onTap: onPressed,
-            child: Icon(icon, size: 20, color: active ? scheme.onPrimary : scheme.onSurface),
+      ),
+    );
+  }
+}
+
+/// Translucent, blurred ground for controls over the map (`--glass`).
+class MapGlass extends StatelessWidget {
+  const MapGlass({
+    super.key,
+    required this.child,
+    this.width,
+    this.height = 44,
+    this.color,
+    this.radius = AppRadius.lgAll,
+  });
+
+  final Widget child;
+  final double? width;
+  final double? height;
+  final Color? color;
+  final BorderRadius radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: AppShadows.hairline(Theme.of(context).brightness),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Material(
+            color: color ?? context.tones.glass,
+            child: child,
           ),
         ),
       ),

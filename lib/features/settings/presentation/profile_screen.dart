@@ -50,6 +50,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final tones = context.tones;
     final user = ref.watch(sessionProvider).value;
     final devices = ref.watch(deviceViewsProvider).value?.length ?? 0;
     if (user == null) return const Scaffold();
@@ -64,33 +65,49 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AppCard(
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 84,
-                          height: 84,
-                          decoration: const BoxDecoration(gradient: AppColors.brandGradient, shape: BoxShape.circle),
-                          alignment: Alignment.center,
-                          child: Text(user.initials,
-                              style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white)),
+                  AppSpacing.gapSm,
+                  Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(color: tones.accent800, shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: Text(
+                          user.initials,
+                          style: theme.textTheme.titleLarge
+                              ?.copyWith(fontSize: 21, fontWeight: FontWeight.w500, color: tones.accent200),
                         ),
-                        AppSpacing.gapMd,
-                        Text(user.name, style: theme.textTheme.titleLarge),
-                        Text(user.email, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        AppSpacing.gapSm,
-                        Pill(label: user.accountType.label, color: AppColors.iris, icon: AppIcons.building),
-                        AppSpacing.gapLg,
-                        Row(
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: _Stat(value: '$devices', label: 'Devices')),
-                            const Expanded(child: _Stat(value: '1', label: 'Organizations')),
+                            Text(
+                              user.name,
+                              style: theme.textTheme.titleLarge?.copyWith(fontSize: 22, fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              user.email,
+                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13, color: tones.neutral500),
+                            ),
+                            AppSpacing.gapSm,
+                            Pill(label: user.accountType.label, color: AppColors.iris, icon: AppIcons.building),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  AppSpacing.gapMd,
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(child: _Stat(value: '$devices', label: 'Devices')),
+                      AppSpacing.gapSm,
+                      const Expanded(child: _Stat(value: '1', label: 'Organizations')),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   const WorkspaceSwitcher(),
                   AppSpacing.gapMd,
                   SettingsGroup(children: [
@@ -110,11 +127,25 @@ class ProfileScreen extends ConsumerWidget {
                   ]),
                   AppSpacing.gapMd,
                   AppCard(
-                    padding: EdgeInsets.zero,
-                    child: ListTile(
-                      leading: const Icon(AppIcons.building),
-                      title: Text(user.organization),
-                      subtitle: Text(user.phone.isEmpty ? 'Owner' : 'Owner · ${user.phone}'),
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Icon(AppIcons.building, size: 22, color: tones.accent300),
+                        AppSpacing.gapMd,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(user.organization,
+                                  style: theme.textTheme.bodyLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w500)),
+                              Text(
+                                user.phone.isEmpty ? 'Owner' : 'Owner · ${user.phone}',
+                                style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: tones.neutral500),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -134,10 +165,15 @@ class _Stat extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          Text(value, style: AppTypography.metric),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ],
+  Widget build(BuildContext context) => AppCard(
+        radius: AppRadius.mdAll,
+        padding: AppSpacing.cardCompact,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: AppTypography.metric.copyWith(fontSize: 19, fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(fontSize: 11, color: context.tones.neutral500)),
+          ],
+        ),
       );
 }

@@ -22,16 +22,19 @@ Future<bool> confirmDeleteDriver(BuildContext context, WidgetRef ref, Driver dri
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      icon: const Icon(AppIcons.delete, color: AppColors.emergency),
+      icon: Icon(AppIcons.delete, color: ctx.tones.crit),
       title: Text('Delete ${driver.name}?'),
       content: Text(vehicleName == null
           ? 'The driver will be removed from your fleet.'
           : 'The driver will be removed from your fleet and $vehicleName will have no driver.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-        FilledButton(
+        OutlinedButton(
           key: const Key('driver-delete-confirm'),
-          style: FilledButton.styleFrom(backgroundColor: AppColors.emergency),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: ctx.tones.crit),
+            foregroundColor: ctx.tones.critInk,
+          ),
           onPressed: () => Navigator.pop(ctx, true),
           child: const Text('Delete'),
         ),
@@ -105,7 +108,7 @@ class _DriverEditorState extends ConsumerState<_DriverEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
@@ -114,7 +117,13 @@ class _DriverEditorState extends ConsumerState<_DriverEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(_editing ? 'Edit driver' : 'Add driver', style: theme.textTheme.titleLarge),
+              Text(_editing ? 'Edit driver' : 'Add driver',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500, letterSpacing: -0.4)),
+              const SizedBox(height: 2),
+              Text(
+                _editing ? 'Update contact and licence details.' : 'Drivers can be assigned to one vehicle at a time.',
+                style: TextStyle(fontSize: 13, color: tones.neutral500),
+              ),
               AppSpacing.gapLg,
               TextFormField(
                 key: const Key('driver-name'),
@@ -145,15 +154,18 @@ class _DriverEditorState extends ConsumerState<_DriverEditor> {
               ),
               if (_error != null) ...[
                 AppSpacing.gapMd,
-                Row(
-                  children: [
-                    Icon(AppIcons.warning, size: 16, color: theme.colorScheme.error),
-                    AppSpacing.gapSm,
-                    Expanded(
-                      child: Text(_error!,
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+                  decoration: BoxDecoration(color: tones.critBg, borderRadius: AppRadius.mdAll),
+                  child: Row(
+                    children: [
+                      Icon(AppIcons.warning, size: 16, color: tones.crit),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(_error!, style: TextStyle(fontSize: 13, color: tones.critInk)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               AppSpacing.gapXl,

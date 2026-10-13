@@ -47,41 +47,60 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tones = context.tones;
     final scale = CurvedAnimation(parent: _c, curve: Curves.easeOutBack);
     final fade = CurvedAnimation(parent: _c, curve: const Interval(0.35, 1, curve: Curves.easeOut));
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B0F1E), Color(0xFF1A1550)],
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -0.24),
+            colors: [tones.accent900, theme.scaffoldBackgroundColor],
+            stops: const [0, 0.7],
           ),
         ),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScaleTransition(scale: scale, child: const TrackProMark(size: 96)),
-              const SizedBox(height: 22),
+              ScaleTransition(
+                scale: scale,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.35), blurRadius: 40),
+                    ],
+                  ),
+                  child: const TrackProMark(size: 76),
+                ),
+              ),
+              const SizedBox(height: 14),
               FadeTransition(
                 opacity: fade,
                 child: Column(
                   children: [
                     Text.rich(
-                      const TextSpan(children: [
-                        TextSpan(text: 'Track'),
-                        TextSpan(text: 'Pro', style: TextStyle(color: AppColors.signalLight)),
+                      TextSpan(children: [
+                        const TextSpan(text: 'Track'),
+                        TextSpan(text: 'Pro', style: TextStyle(color: theme.colorScheme.primary)),
                       ]),
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 14),
                     Text(
-                      'Track anything. Anywhere.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      'Track anything. Anywhere.'.toUpperCase(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        letterSpacing: 1.9,
+                        color: tones.neutral500,
+                      ),
                     ),
                   ],
                 ),

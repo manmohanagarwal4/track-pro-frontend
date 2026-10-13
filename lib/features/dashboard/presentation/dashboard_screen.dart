@@ -69,34 +69,29 @@ class _DashboardBody extends ConsumerWidget {
     final unread = ref.watch(unreadAlertCountProvider);
     final business = ref.watch(accountTypeProvider) == AccountType.business;
     final active = const DeviceQuery(sort: DeviceSort.status).apply(views).take(6).toList();
-    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.tablet;
 
     final tiles = [
       SummaryTile(
         label: 'Total Devices',
         value: counts.total,
-        icon: AppIcons.devices,
         color: AppColors.iris,
         onTap: () => _openDevices(context, ref, StatusFilter.all),
       ),
       SummaryTile(
         label: 'Online',
         value: counts.online,
-        icon: AppIcons.online,
         color: AppColors.stationary,
         onTap: () => _openDevices(context, ref, StatusFilter.online),
       ),
       SummaryTile(
         label: 'Moving',
         value: counts.moving,
-        icon: AppIcons.navigation,
         color: AppColors.moving,
         onTap: () => _openDevices(context, ref, StatusFilter.moving),
       ),
       SummaryTile(
         label: 'Alerts',
         value: unread,
-        icon: AppIcons.alerts,
         color: AppColors.emergency,
         onTap: () => context.go(Routes.alerts),
       ),
@@ -111,18 +106,7 @@ class _DashboardBody extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _Header(attention: counts.attention),
-              Padding(
-                padding: AppSpacing.screen,
-                child: GridView.count(
-                  crossAxisCount: wide ? 4 : 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: AppSpacing.md,
-                  crossAxisSpacing: AppSpacing.md,
-                  childAspectRatio: wide ? 2.6 : 2.1,
-                  children: tiles,
-                ),
-              ),
+              Padding(padding: AppSpacing.screen, child: KpiRow(children: tiles)),
               const Padding(
                 padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
                 child: LiveSimulationToggle(),
@@ -146,43 +130,35 @@ class _DashboardBody extends ConsumerWidget {
                       child: QuickAction(
                           icon: AppIcons.add, label: 'Add tracker', onTap: () => context.push(Routes.addDevice)),
                     ),
-                    AppSpacing.gapMd,
+                    AppSpacing.gapSm,
                     Expanded(
                       child: QuickAction(
-                          icon: AppIcons.geofence,
-                          label: 'Geofences',
-                          color: AppColors.signal,
-                          onTap: () => context.push(Routes.geofences)),
+                          icon: AppIcons.geofence, label: 'Geofences', onTap: () => context.push(Routes.geofences)),
                     ),
-                    AppSpacing.gapMd,
+                    AppSpacing.gapSm,
                     Expanded(
                       child: business
                           ? QuickAction(
-                              icon: AppIcons.driver,
-                              label: 'Drivers',
-                              color: AppColors.warning,
-                              onTap: () => context.push(Routes.drivers))
+                              icon: AppIcons.driver, label: 'Drivers', onTap: () => context.push(Routes.drivers))
                           : QuickAction(
-                              icon: AppIcons.devices,
-                              label: 'All devices',
-                              color: AppColors.warning,
-                              onTap: () => context.go(Routes.devices)),
+                              icon: AppIcons.devices, label: 'All devices', onTap: () => context.go(Routes.devices)),
                     ),
-                    AppSpacing.gapMd,
+                    AppSpacing.gapSm,
                     Expanded(
                       child: QuickAction(
-                          icon: AppIcons.assets,
-                          label: 'Assets',
-                          color: AppColors.stationary,
-                          onTap: () => context.push(Routes.assets)),
+                          icon: AppIcons.assets, label: 'Assets', onTap: () => context.push(Routes.assets)),
                     ),
                   ],
                 ),
               ),
-              SectionHeader(
-                'Active Devices',
-                action: 'View all',
-                onAction: () => context.go(business ? Routes.fleet : Routes.devices),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.xs),
+                child: GroupLabel(
+                  'Active Devices',
+                  uppercase: false,
+                  action: 'View all',
+                  onAction: () => context.go(business ? Routes.fleet : Routes.devices),
+                ),
               ),
               if (active.isEmpty)
                 EmptyView(
@@ -195,13 +171,9 @@ class _DashboardBody extends ConsumerWidget {
               else
                 Padding(
                   padding: AppSpacing.screen,
-                  child: Column(
+                  child: GroupedTile(
                     children: [
-                      for (final v in active)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                          child: DeviceCard(key: ValueKey(v.id), view: v),
-                        ),
+                      for (final v in active) DeviceCard(key: ValueKey(v.id), view: v, dense: true),
                     ],
                   ),
                 ),
@@ -225,12 +197,12 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tones = context.tones;
     final user = ref.watch(sessionProvider).value;
     final unreadNotifications = ref.watch(unreadNotificationCountProvider);
     final ok = attention == 0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.sm, AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.md),
       child: Row(
         children: [
           Expanded(
@@ -239,22 +211,23 @@ class _Header extends ConsumerWidget {
               children: [
                 Text(
                   '${Fmt.greeting(clock.now())}, ${user?.firstName ?? ''}',
-                  style: theme.textTheme.headlineSmall,
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500, letterSpacing: -0.4),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Row(
                   children: [
-                    Icon(ok ? AppIcons.success : AppIcons.warning,
-                        size: 15, color: ok ? AppColors.moving : AppColors.warning),
+                    Icon(ok ? AppIcons.success : AppIcons.warning, size: 14, color: ok ? tones.ok : tones.warn),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         ok
                             ? 'All systems operational'
                             : '$attention device${attention == 1 ? '' : 's'} need${attention == 1 ? 's' : ''} attention',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: tones.neutral500),
                       ),
                     ),
                   ],
@@ -268,16 +241,16 @@ class _Header extends ConsumerWidget {
             icon: Badge(
               isLabelVisible: unreadNotifications > 0,
               label: Text('$unreadNotifications'),
-              child: const Icon(AppIcons.bellRing),
+              child: const Icon(AppIcons.bellRing, size: 22),
             ),
           ),
           GestureDetector(
             onTap: () => context.push(Routes.profile),
             child: CircleAvatar(
-              radius: 19,
-              backgroundColor: theme.colorScheme.primary,
+              radius: 18,
+              backgroundColor: tones.accent800,
               child: Text(user?.initials ?? '',
-                  style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onPrimary)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: tones.accent200)),
             ),
           ),
           AppSpacing.gapSm,

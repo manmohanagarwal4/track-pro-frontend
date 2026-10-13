@@ -8,10 +8,10 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/state_views.dart';
-import '../../../core/widgets/status_widgets.dart';
 import '../../../data/models/alert.dart';
 import '../../../data/models/enums.dart';
 import '../../alerts/application/alerts_controller.dart';
+import '../../alerts/presentation/alerts_screen.dart';
 import '../../devices/presentation/widgets/device_card.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -33,7 +33,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final items = ref.watch(notificationsProvider);
     return Scaffold(
       appBar: AppBar(
@@ -67,53 +66,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.huge),
                           itemCount: list.length,
-                          separatorBuilder: (_, _) => AppSpacing.gapMd,
+                          separatorBuilder: (_, _) => const SizedBox(height: 10),
                           itemBuilder: (_, i) {
                             final n = list[i];
-                            final color = _color(n.category);
                             return Dismissible(
                               key: ValueKey(n.id),
                               direction: DismissDirection.endToStart,
                               onDismissed: (_) => ref.read(notificationsProvider.notifier).delete(n.id),
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: AppSpacing.xl),
-                                decoration: BoxDecoration(color: theme.colorScheme.error, borderRadius: AppRadius.lgAll),
-                                child: const Icon(AppIcons.delete, color: Colors.white),
-                              ),
-                              child: AppCard(
+                              background: const DeleteSwipeBackground(),
+                              child: AlertRowTile(
+                                icon: AppIcons.notification(n.category),
+                                color: _color(n.category),
+                                title: n.title,
+                                time: n.timestamp,
+                                body: n.body,
+                                tag: n.category.label,
+                                unread: !n.read,
                                 onTap: () {
                                   ref.read(notificationsProvider.notifier).markRead(n.id);
                                   if (n.deviceId != null) context.push(Routes.device(n.deviceId!));
                                 },
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    IconBadge(icon: AppIcons.notification(n.category), color: color),
-                                    AppSpacing.gapMd,
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(n.title,
-                                                    style: theme.textTheme.titleSmall?.copyWith(
-                                                        fontWeight: n.read ? FontWeight.w500 : FontWeight.w700)),
-                                              ),
-                                              TimeAgoText(n.timestamp, short: true, style: theme.textTheme.bodySmall),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(n.body, style: theme.textTheme.bodyMedium),
-                                          const SizedBox(height: 6),
-                                          Pill(label: n.category.label, color: color),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
                             );
                           },
