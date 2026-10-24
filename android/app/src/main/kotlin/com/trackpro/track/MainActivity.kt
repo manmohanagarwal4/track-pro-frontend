@@ -1,4 +1,4 @@
-package com.pay10.tracker
+package com.trackpro.track
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -4,7 +4,7 @@ A general-purpose GPS tracking app for personal users (pets, keys, family, perso
 businesses (taxis, trucks, delivery vans, fleets, equipment). **Everything runs locally on mock data**:
 no backend, API key or network connection is needed.
 
-- Package / bundle ID: `com.pay10.tracker` · Display name: **TrackPro**
+- Package / bundle ID: `com.trackpro.track` · Display name: **TrackPro**
 - Platforms: Android, iOS, Web
 - Stack: Flutter 3.47, Riverpod 3, go_router, flutter_map (offline simulated base map), SharedPreferences, mobile_scanner
 
