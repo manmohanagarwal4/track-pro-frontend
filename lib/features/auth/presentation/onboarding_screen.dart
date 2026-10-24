@@ -1,10 +1,15 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/headline_reveal.dart';
+import '../../../core/motion/reveal.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/enums.dart';
 import '../../settings/application/settings_controller.dart';
@@ -23,13 +28,13 @@ const _pages = [
     'Track anything that matters',
     'Pets, keys, people, cars, taxis, trucks and equipment — one app for every tracker you own.',
     [AppIcons.pin, AppIcons.navigation, AppIcons.devices],
-    AppColors.iris,
+    AppColors.crimson,
   ),
   _Page(
     'Live location, every second',
     'Watch assets move in real time with speed, heading, battery and full telemetry.',
     [AppIcons.speed, AppIcons.route, AppIcons.satellite],
-    AppColors.signal,
+    AppColors.rose,
   ),
   _Page(
     'Alerts & geofences that act for you',
@@ -89,11 +94,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     AnimatedContainer(
                       duration: AppDurations.medium,
                       margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: i == _index ? 22 : 8,
+                      curve: AppCurves.spring,
+                      width: i == _index ? 28 : 8,
                       height: 8,
                       decoration: BoxDecoration(
                         color: i == _index ? theme.colorScheme.primary : context.tones.neutral700,
                         borderRadius: AppRadius.pillAll,
+                        boxShadow: i == _index ? AppShadows.glow(theme.colorScheme.primary, strength: 0.5) : const [],
                       ),
                     ),
                 ],
@@ -108,7 +115,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         : () => _controller.nextPage(
                             duration: AppDurations.slow, curve: Curves.easeOutCubic),
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    child: Text(last ? 'Get started' : 'Next'),
+                    child: AnimatedSwitcher(
+                      duration: AppDurations.medium,
+                      transitionBuilder: (c, a) => FadeTransition(
+                        opacity: a,
+                        child: SlideTransition(
+                          position: Tween(begin: const Offset(0, 0.5), end: Offset.zero).animate(a),
+                          child: c,
+                        ),
+                      ),
+                      child: Text(last ? 'Get started' : 'Next', key: ValueKey(last)),
+                    ),
                   ),
                 ),
               ),
@@ -145,16 +162,23 @@ class _OnboardingPage extends StatelessWidget {
         children: [
           _Illustration(page: page),
           const SizedBox(height: 40),
-          Text(
-            page.title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24, fontWeight: FontWeight.w500),
+          HeadlineReveal(
+            delay: const Duration(milliseconds: 150),
+            child: Text(
+              page.title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(fontSize: 28, fontWeight: FontWeight.w800, height: 1.1),
+            ),
           ),
           AppSpacing.gapMd,
-          Text(
-            page.body,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyLarge?.copyWith(color: context.tones.neutral500),
+          Reveal(
+            delay: const Duration(milliseconds: 450),
+            offset: 12,
+            child: Text(
+              page.body,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge?.copyWith(color: context.tones.neutral400),
+            ),
           ),
         ],
       ),
@@ -162,55 +186,79 @@ class _OnboardingPage extends StatelessWidget {
   }
 }
 
-class _Illustration extends StatelessWidget {
+/// A breathing crimson core with tracker chips orbiting it on two rings.
+class _Illustration extends StatefulWidget {
   const _Illustration({required this.page});
 
   final _Page page;
+
+  @override
+  State<_Illustration> createState() => _IllustrationState();
+}
+
+class _IllustrationState extends State<_Illustration> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(seconds: 16))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tones = context.tones;
     final accent = theme.colorScheme.primary;
+    final page = widget.page;
+    // (ring radius, start angle, chip) — inner ring turns forwards, outer back.
+    final orbiters = [
+      (80.0, 0.0, _Chip(icon: page.icons[1], color: tones.tone(page.color))),
+      (80.0, math.pi, _Chip(icon: page.icons[2], color: tones.tone(page.color))),
+      (110.0, math.pi / 2, _Chip(icon: AppIcons.asset(AssetType.pet), color: AppColors.moving, small: true)),
+      (110.0, -math.pi / 2, _Chip(icon: AppIcons.asset(AssetType.truck), color: AppColors.idle, small: true)),
+    ];
     return SizedBox(
-      width: 240,
-      height: 220,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          for (final r in [220.0, 160.0, 100.0])
-            Container(
-              width: r,
-              height: r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: tones.divider),
+      width: 260,
+      height: 240,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, _) {
+          final a = _c.value * 2 * math.pi;
+          final breathe = 1 + 0.04 * math.sin(a * 4);
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              for (final r in [220.0, 160.0])
+                Container(
+                  width: r,
+                  height: r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: accent.withValues(alpha: 0.18)),
+                  ),
+                ),
+              Transform.scale(
+                scale: breathe,
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.brandGradient,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: AppShadows.glow(accent, strength: 1.1 * breathe),
+                  ),
+                  child: Icon(page.icons.first, color: AppColors.white, size: 40),
+                ),
               ),
-            ),
-          Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              color: tones.accent900,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: accent, width: 1.5),
-              boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.35), blurRadius: 40)],
-            ),
-            child: Icon(page.icons.first, color: tones.accent300, size: 38),
-          ),
-          Positioned(left: 18, top: 40, child: _Chip(icon: page.icons[1], color: tones.tone(page.color))),
-          Positioned(right: 14, bottom: 46, child: _Chip(icon: page.icons[2], color: tones.tone(page.color))),
-          Positioned(
-            right: 34,
-            top: 22,
-            child: _Chip(icon: AppIcons.asset(AssetType.pet), color: AppColors.moving, small: true),
-          ),
-          Positioned(
-            left: 34,
-            bottom: 26,
-            child: _Chip(icon: AppIcons.asset(AssetType.truck), color: AppColors.stationary, small: true),
-          ),
-        ],
+              for (final (radius, start, chip) in orbiters)
+                Transform.translate(
+                  offset: Offset.fromDirection(start + (radius < 100 ? a : -a), radius),
+                  child: chip,
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -233,9 +281,11 @@ class _Chip extends StatelessWidget {
       width: s,
       height: s,
       decoration: BoxDecoration(
-        color: small ? tag.bg : Theme.of(context).colorScheme.surface,
-        borderRadius: small ? BorderRadius.circular(10) : AppRadius.lgAll,
-        border: small ? null : Border.all(color: tones.divider, width: 1.5),
+        color: small ? tag.bg : null,
+        gradient: small ? null : tones.glassGradient,
+        borderRadius: small ? BorderRadius.circular(12) : BorderRadius.circular(16),
+        border: Border.all(color: small ? color.withValues(alpha: 0.35) : tones.glassBorder, width: 1.2),
+        boxShadow: [BoxShadow(color: (small ? color : tones.shadow).withValues(alpha: 0.35), blurRadius: 14)],
       ),
       child: Icon(icon, color: small ? tag.ink : tones.accent300, size: s * 0.48),
     );

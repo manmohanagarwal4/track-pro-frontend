@@ -93,7 +93,7 @@ class ProfileScreen extends ConsumerWidget {
                               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13, color: tones.neutral500),
                             ),
                             AppSpacing.gapSm,
-                            Pill(label: user.accountType.label, color: AppColors.iris, icon: AppIcons.building),
+                            Pill(label: user.accountType.label, color: AppColors.crimson, icon: AppIcons.building),
                           ],
                         ),
                       ),

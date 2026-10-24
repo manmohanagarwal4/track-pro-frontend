@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/headline_reveal.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/trackpro_logo.dart';
 import '../../settings/application/settings_controller.dart';
 import '../application/session_controller.dart';
@@ -17,8 +22,9 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..forward();
+class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300))..forward();
+  late final _sonar = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat();
   Timer? _timer;
 
   @override
@@ -42,6 +48,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   void dispose() {
     _timer?.cancel();
     _c.dispose();
+    _sonar.dispose();
     super.dispose();
   }
 
@@ -49,65 +56,109 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tones = context.tones;
-    final scale = CurvedAnimation(parent: _c, curve: Curves.easeOutBack);
-    final fade = CurvedAnimation(parent: _c, curve: const Interval(0.35, 1, curve: Curves.easeOut));
+    final accent = theme.colorScheme.primary;
+    final pop = CurvedAnimation(parent: _c, curve: const Interval(0, 0.6, curve: AppCurves.spring));
+    final tagline = CurvedAnimation(parent: _c, curve: const Interval(0.45, 1, curve: AppCurves.enter));
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.24),
-            colors: [tones.accent900, theme.scaffoldBackgroundColor],
-            stops: const [0, 0.7],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ScaleTransition(
-                scale: scale,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.35), blurRadius: 40),
-                    ],
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 220,
+              height: 220,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Sonar: three rings pulsing out from the mark, staggered.
+                  AnimatedBuilder(
+                    animation: _sonar,
+                    builder: (_, _) => Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        for (var k = 0; k < 3; k++)
+                          _Ring(t: (_sonar.value + k / 3) % 1, color: accent),
+                      ],
+                    ),
                   ),
-                  child: const TrackProMark(size: 76),
+                  AnimatedBuilder(
+                    animation: pop,
+                    builder: (_, child) => Transform.rotate(
+                      angle: (1 - pop.value) * -math.pi / 10,
+                      child: Transform.scale(scale: pop.value, child: child),
+                    ),
+                    child: Container(
+                      width: 92,
+                      height: 92,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.brandGradient,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: AppShadows.glow(accent, strength: 1.3),
+                      ),
+                      child: const TrackProMark(size: 62, outline: Color(0x00000000), glyph: AppColors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            HeadlineReveal(
+              delay: const Duration(milliseconds: 300),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('TRACK', style: _wordmark.copyWith(color: theme.colorScheme.onSurface)),
+                  ShimmerText('PRO', style: _wordmark, colors: [AppColors.crimsonLight, AppColors.crimsonDeep]),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            AnimatedBuilder(
+              animation: tagline,
+              builder: (_, _) => Opacity(
+                opacity: tagline.value,
+                child: Text(
+                  'Track anything. Anywhere.'.toUpperCase(),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2.2 + (1 - tagline.value) * 8,
+                    color: tones.neutral400,
+                  ),
                 ),
               ),
-              const SizedBox(height: 14),
-              FadeTransition(
-                opacity: fade,
-                child: Column(
-                  children: [
-                    Text.rich(
-                      TextSpan(children: [
-                        const TextSpan(text: 'Track'),
-                        TextSpan(text: 'Pro', style: TextStyle(color: theme.colorScheme.primary)),
-                      ]),
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Track anything. Anywhere.'.toUpperCase(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 12,
-                        letterSpacing: 1.9,
-                        color: tones.neutral500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  static const _wordmark = TextStyle(
+    fontFamily: AppTypography.family,
+    fontSize: 40,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+    height: 1,
+  );
+}
+
+class _Ring extends StatelessWidget {
+  const _Ring({required this.t, required this.color});
+
+  final double t;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = 92 + t * 128;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.5 * (1 - t)), width: 1.5),
       ),
     );
   }

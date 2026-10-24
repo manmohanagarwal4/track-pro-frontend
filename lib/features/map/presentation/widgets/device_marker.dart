@@ -32,7 +32,7 @@ class DeviceMarkerIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final tones = context.tones;
     final color = tones.tone(StatusStyle.of(view.status));
-    final ground = Theme.of(context).scaffoldBackgroundColor;
+    final ground = context.tones.groundBase;
     final halo = MapPalette.of(context).land;
     final disc = selected ? 36.0 : 30.0;
     final moving = view.status.isMoving;
@@ -212,7 +212,7 @@ class UserLocationDot extends StatelessWidget {
           height: 18,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: theme.scaffoldBackgroundColor,
+            color: context.tones.groundBase,
             border: Border.all(color: accent, width: 3),
           ),
           alignment: Alignment.center,

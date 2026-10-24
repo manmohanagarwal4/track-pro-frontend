@@ -3,10 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/providers.dart';
+import '../../../core/motion/headline_reveal.dart';
+import '../../../core/motion/reveal.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/poster_card.dart';
 import '../../../core/widgets/trackpro_logo.dart';
 import '../application/session_controller.dart';
 
@@ -102,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(22, 48, 22, 32),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
@@ -110,23 +115,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Align(alignment: Alignment.centerLeft, child: TrackProMark(size: 48)),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Welcome back',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.5,
-                        height: 1.15,
-                      ),
-                    ),
-                    AppSpacing.gapSm,
-                    Text(
-                      'Sign in to see where everything is right now.',
-                      style: theme.textTheme.bodyLarge?.copyWith(color: tones.neutral500),
+                    // The poster sits behind; the frosted form card overlaps it.
+                    Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 56),
+                          child: Reveal(
+                            delay: Duration.zero,
+                            offset: 40,
+                            child: SizedBox(
+                              height: 210,
+                              child: PosterCard(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(18),
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: AppShadows.glow(AppColors.white, strength: 0.35),
+                                      ),
+                                      child: const TrackProMark(size: 48, outline: AppColors.white, glyph: AppColors.white),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 128, left: 24),
+                          child: AppCard(
+                            blur: 18,
+                            radius: AppRadius.xlAll,
+                            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                HeadlineReveal(
+                                  delay: const Duration(milliseconds: 250),
+                                  child: Text(
+                                    'Welcome back',
+                                    style: theme.textTheme.headlineMedium?.copyWith(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.05,
+                                    ),
+                                  ),
+                                ),
+                                AppSpacing.gapSm,
+                                Reveal(
+                                  delay: const Duration(milliseconds: 450),
+                                  offset: 10,
+                                  child: Text(
+                                    'Sign in to see where everything is right now.',
+                                    style: theme.textTheme.bodyLarge?.copyWith(color: tones.neutral400),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
+                    Reveal(
+                      delay: const Duration(milliseconds: 380),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                     const AuthFieldLabel('Email'),
                     TextFormField(
                       key: const Key('login-email'),
@@ -164,6 +221,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       validator: (v) =>
                           v == null || v.length < 4 ? 'Password must be at least 4 characters' : null,
                     ),
+                        ],
+                      ),
+                    ),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(onPressed: busy ? null : _forgot, child: const Text('Forgot password?')),
@@ -186,14 +246,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                     ),
+                    Reveal(
+                      delay: const Duration(milliseconds: 520),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                     FilledButton(
                       key: const Key('login-submit'),
                       onPressed: busy ? null : _signIn,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
-                        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                       ),
-                      child: _busy ? const _ButtonSpinner() : const Text('Sign in'),
+                      child: AnimatedSwitcher(
+                        duration: AppDurations.medium,
+                        transitionBuilder: (c, a) => ScaleTransition(scale: a, child: FadeTransition(opacity: a, child: c)),
+                        child: _busy ? const _ButtonSpinner() : const Text('SIGN IN', key: ValueKey('label')),
+                      ),
                     ),
                     AppSpacing.gapSm,
                     OutlinedButton.icon(
@@ -202,6 +270,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
                       icon: _demoBusy ? const _ButtonSpinner() : const Icon(AppIcons.sparkles, size: 18),
                       label: const Text('Continue with Demo Account'),
+                    ),
+                        ],
+                      ),
                     ),
                     AppSpacing.gapLg,
                     Wrap(
@@ -260,6 +331,10 @@ class _ButtonSpinner extends StatelessWidget {
   const _ButtonSpinner();
 
   @override
-  Widget build(BuildContext context) =>
-      const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2));
+  Widget build(BuildContext context) => SizedBox(
+        width: 18,
+        height: 18,
+        // Inherits the hosting button's foreground color.
+        child: CircularProgressIndicator(strokeWidth: 2, color: DefaultTextStyle.of(context).style.color),
+      );
 }

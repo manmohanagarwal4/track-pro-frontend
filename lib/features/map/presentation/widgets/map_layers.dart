@@ -162,7 +162,7 @@ class _EndpointPin extends StatelessWidget {
           width: 18,
           height: 18,
           decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
+            color: context.tones.groundBase,
             shape: BoxShape.circle,
             border: Border.all(color: ink, width: 2.5),
             boxShadow: [BoxShadow(color: MapPalette.of(context).land, spreadRadius: 1.5)],

@@ -38,8 +38,8 @@ abstract final class StatusStyle {
 
   static Color geofence(GeofenceType t) => switch (t) {
         GeofenceType.home || GeofenceType.safeZone => AppColors.moving,
-        GeofenceType.office => AppColors.iris,
-        GeofenceType.warehouse => AppColors.signal,
+        GeofenceType.office => AppColors.crimson,
+        GeofenceType.warehouse => AppColors.rose,
         GeofenceType.restricted => AppColors.emergency,
         GeofenceType.customer => AppColors.warning,
       };

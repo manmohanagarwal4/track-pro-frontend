@@ -1,8 +1,12 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/motion/headline_reveal.dart';
+import '../../../../core/motion/reveal.dart';
 import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -11,6 +15,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/status_widgets.dart';
+import '../../../../data/models/geofence.dart';
 import '../../../../domain/device_view.dart';
 import '../../../devices/application/devices_controller.dart';
 import '../../../geofences/application/geofences_controller.dart';
@@ -37,10 +42,12 @@ class ScreenTitle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.headlineMedium?.copyWith(fontSize: 28, fontWeight: FontWeight.w500)),
+                HeadlineReveal(
+                  child: Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.headlineMedium?.copyWith(fontSize: 30, fontWeight: FontWeight.w800)),
+                ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
                   DefaultTextStyle.merge(
@@ -88,15 +95,19 @@ class SummaryTile extends StatelessWidget {
             tween: Tween(end: value.toDouble()),
             duration: AppDurations.slow,
             builder: (_, v, _) =>
-                Text('${v.round()}', style: AppTypography.metric.copyWith(fontSize: 19, letterSpacing: -0.2)),
+                Text('${v.round()}', style: AppTypography.metric.copyWith(fontSize: 22, letterSpacing: -0.2)),
           ),
           const SizedBox(height: 2),
           Row(
             children: [
               Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(color: tones.tone(color), shape: BoxShape.circle),
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: tones.tone(color),
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: tones.tone(color).withValues(alpha: 0.8), blurRadius: 8)],
+                ),
               ),
               const SizedBox(width: 5),
               Expanded(
@@ -162,7 +173,7 @@ class GroupLabel extends StatelessWidget {
               style: TextButton.styleFrom(
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                textStyle: const TextStyle(fontSize: 13),
+                textStyle: const TextStyle(fontFamily: AppTypography.family, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               child: Text(action!),
             ),
@@ -182,6 +193,7 @@ class GroupedItem extends StatelessWidget {
     this.last = true,
     this.color,
     this.inset = AppSpacing.md,
+    this.reveal = true,
   });
 
   final Widget child;
@@ -189,12 +201,19 @@ class GroupedItem extends StatelessWidget {
   final bool last;
   final Color? color;
   final double inset;
+  final bool reveal;
+
+  /// Uniform glass fill, so stacked rows read as one seamless surface.
+  static Color glassFill(AppTones tones) => Color.lerp(tones.glassTop, tones.glassBottom, 0.55)!;
 
   @override
   Widget build(BuildContext context) {
     const r = Radius.circular(AppRadius.lg);
-    return Material(
-      color: color ?? Theme.of(context).colorScheme.surface,
+    return Reveal(
+      enabled: reveal,
+      offset: 14,
+      child: Material(
+      color: color ?? glassFill(context.tones),
       borderRadius: BorderRadius.vertical(top: first ? r : Radius.zero, bottom: last ? r : Radius.zero),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -203,10 +222,11 @@ class GroupedItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            child,
+            GlassGroup(child: child),
             if (!last) Divider(height: 1, thickness: 1, indent: inset, endIndent: inset, color: context.tones.divider),
           ],
         ),
+      ),
       ),
     );
   }
@@ -221,19 +241,40 @@ class GroupedTile extends StatelessWidget {
   final double inset;
 
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < children.length; i++)
-            GroupedItem(
-              first: i == 0,
-              last: i == children.length - 1,
-              color: color,
-              inset: inset,
-              child: children[i],
-            ),
-        ],
-      );
+  Widget build(BuildContext context) {
+    final tones = context.tones;
+    return Reveal(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          gradient: color == null ? tones.glassGradient : null,
+          borderRadius: AppRadius.lgAll,
+          boxShadow: AppShadows.card(Theme.of(context).brightness),
+        ),
+        child: CustomPaint(
+          foregroundPainter: GlassRimPainter(
+            radius: AppRadius.lgAll,
+            highlight: tones.glassHighlight,
+            edge: tones.glassBorder,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < children.length; i++)
+                GroupedItem(
+                  first: i == 0,
+                  last: i == children.length - 1,
+                  color: AppColors.transparent,
+                  inset: inset,
+                  reveal: false,
+                  child: children[i],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Facts-list row: neutral icon, muted key, value on the right.
@@ -288,9 +329,17 @@ class DotFilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tones = context.tones;
-    return Material(
-      color: selected ? theme.colorScheme.primary.withValues(alpha: 0.08) : AppColors.transparent,
-      shape: StadiumBorder(side: BorderSide(color: selected ? theme.colorScheme.primary : tones.divider)),
+    final accent = theme.colorScheme.primary;
+    return AnimatedContainer(
+      duration: AppDurations.medium,
+      curve: Curves.easeOut,
+      decoration: ShapeDecoration(
+        shape: const StadiumBorder(),
+        shadows: selected ? [BoxShadow(color: accent.withValues(alpha: 0.35), blurRadius: 14)] : const [],
+      ),
+      child: Material(
+      color: selected ? accent.withValues(alpha: 0.18) : GroupedItem.glassFill(tones),
+      shape: StadiumBorder(side: BorderSide(color: selected ? accent : tones.glassBorder)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -317,6 +366,7 @@ class DotFilterChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -376,7 +426,11 @@ class GlassPill extends StatelessWidget {
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(borderRadius: AppRadius.lgAll, boxShadow: AppShadows.hairline(theme.brightness)),
-      child: Material(
+      child: ClipRRect(
+        borderRadius: AppRadius.lgAll,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Material(
         color: context.tones.glass,
         borderRadius: AppRadius.lgAll,
         clipBehavior: Clip.antiAlias,
@@ -394,6 +448,8 @@ class GlassPill extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
         ),
       ),
     );
@@ -424,6 +480,18 @@ class _LiveMapCardState extends ConsumerState<LiveMapCard> {
     final tones = context.tones;
     final fences = ref.watch(geofencesProvider).value ?? const [];
     final running = ref.watch(liveTrackingProvider.select((s) => s.running));
+    return Reveal(
+      child: DecoratedBox(
+        decoration: BoxDecoration(borderRadius: AppRadius.lgAll, boxShadow: AppShadows.card(Theme.of(context).brightness)),
+        child: CustomPaint(
+          foregroundPainter: GlassRimPainter(radius: AppRadius.lgAll, highlight: tones.glassHighlight, edge: tones.glassBorder),
+          child: _map(context, tones, fences, running),
+        ),
+      ),
+    );
+  }
+
+  Widget _map(BuildContext context, AppTones tones, List<Geofence> fences, bool running) {
     return ClipRRect(
       borderRadius: AppRadius.lgAll,
       child: SizedBox(
@@ -601,13 +669,22 @@ class QuickAction extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.xs),
       child: Column(
         children: [
-          Icon(icon, size: 22, color: context.tones.accent300),
-          const SizedBox(height: 6),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: AppColors.brandGradient,
+              borderRadius: BorderRadius.circular(13),
+              boxShadow: AppShadows.glow(Theme.of(context).colorScheme.primary, strength: 0.55),
+            ),
+            child: Icon(icon, size: 20, color: AppColors.white),
+          ),
+          const SizedBox(height: 8),
           Text(label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12)),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
     );

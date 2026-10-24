@@ -47,7 +47,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
       });
 
   static Color _filterColor(StatusFilter f) => switch (f) {
-        StatusFilter.all => AppColors.iris,
+        StatusFilter.all => AppColors.crimson,
         StatusFilter.online => AppColors.stationary,
         StatusFilter.offline => AppColors.offline,
         StatusFilter.moving => AppColors.moving,
