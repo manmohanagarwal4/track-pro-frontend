@@ -29,14 +29,14 @@ abstract final class AppSpacing {
   static const double maxContentWidth = 760;
 
   /// Bottom padding for scrollables so content clears the bottom nav / FABs.
-  static const double bottomSafe = 96;
+  static const double bottomSafe = 112;
 }
 
 abstract final class AppRadius {
-  static const double sm = 8;
-  static const double md = 8;
-  static const double lg = 14;
-  static const double xl = 22;
+  static const double sm = 10;
+  static const double md = 12;
+  static const double lg = 20;
+  static const double xl = 28;
   static const double pill = 999;
 
   static const smAll = BorderRadius.all(Radius.circular(sm));
@@ -51,12 +51,25 @@ abstract final class AppDurations {
   static const fast = Duration(milliseconds: 150);
   static const medium = Duration(milliseconds: 250);
   static const slow = Duration(milliseconds: 400);
+  static const reveal = Duration(milliseconds: 650);
+  static const hero = Duration(milliseconds: 1100);
+}
+
+/// Motion curves shared by every micro-interaction.
+abstract final class AppCurves {
+  /// Entrances: fast start, long soft landing.
+  static const enter = Curves.easeOutQuart;
+
+  /// Press release: a small overshoot so taps feel springy.
+  static const spring = Curves.easeOutBack;
+
+  /// Emphasised transitions between pages and tabs.
+  static const emphasized = Curves.easeInOutCubicEmphasized;
 }
 
 abstract final class Breakpoints {
   static const double tablet = 720;
   static const double desktop = 1080;
 
-  static bool isTablet(BuildContext context) =>
-      MediaQuery.sizeOf(context).width >= tablet;
+  static bool isTablet(BuildContext context) => MediaQuery.sizeOf(context).width >= tablet;
 }

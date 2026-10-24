@@ -33,6 +33,11 @@ Future<void> _loadFonts() async {
     }
     await loader.load();
   }
+  final barlow = FontLoader('Barlow');
+  for (final w in ['Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold']) {
+    barlow.addFont(rootBundle.load('assets/fonts/Barlow-$w.ttf'));
+  }
+  await barlow.load();
   final lucide = FontLoader('packages/lucide_icons_flutter/Lucide')
     ..addFont(rootBundle.load('packages/lucide_icons_flutter/assets/lucide.ttf'));
   await lucide.load();
@@ -56,15 +61,20 @@ Future<void> _pump(WidgetTester tester, Duration d) async {
 }
 
 Future<(GlobalKey, ProviderContainer)> _boot(WidgetTester tester,
-    {AccountType type = AccountType.business, ThemeMode mode = ThemeMode.light, Size size = const Size(400, 860)}) async {
+    {AccountType type = AccountType.business,
+    ThemeMode mode = ThemeMode.light,
+    Size size = const Size(400, 860),
+    bool signedIn = true,
+    bool onboarded = true,
+    Duration settle = const Duration(seconds: 3)}) async {
   await tester.runAsync(_loadFonts);
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
   // ignore: invalid_use_of_visible_for_testing_member
   SharedPreferences.setMockInitialValues({
-    'tp.settings': jsonEncode(AppSettings(onboardingDone: true, simulateErrors: false, themeMode: mode).toJson()),
-    'tp.session': jsonEncode(MockSeed.demoUser.copyWith(accountType: type).toJson()),
+    'tp.settings': jsonEncode(AppSettings(onboardingDone: onboarded, simulateErrors: false, themeMode: mode).toJson()),
+    if (signedIn) 'tp.session': jsonEncode(MockSeed.demoUser.copyWith(accountType: type).toJson()),
   });
   final store = await LocalStore.open();
   final key = GlobalKey();
@@ -79,7 +89,7 @@ Future<(GlobalKey, ProviderContainer)> _boot(WidgetTester tester,
       child: const TrackProApp(),
     ),
   ));
-  await _pump(tester, const Duration(seconds: 3));
+  await _pump(tester, settle);
   final c = ProviderScope.containerOf(tester.element(find.byType(TrackProApp)));
   return (key, c);
 }
@@ -132,6 +142,18 @@ void main() {
     router.push('/device/PET-001');
     await _pump(tester, const Duration(seconds: 2));
     await _shot(tester, key, '23_dark_pet_details');
+    await tester.pumpWidget(const SizedBox());
+    await _pump(tester, const Duration(seconds: 1));
+  });
+
+  testWidgets('auth screens (dark)', (tester) async {
+    final (key, c) = await _boot(tester, mode: ThemeMode.dark, signedIn: false, onboarded: false, settle: const Duration(milliseconds: 900));
+    await _shot(tester, key, '25_dark_splash');
+    await _pump(tester, const Duration(seconds: 3));
+    await _shot(tester, key, '26_dark_onboarding');
+    c.read(routerProvider).go('/login');
+    await _pump(tester, const Duration(seconds: 2));
+    await _shot(tester, key, '27_dark_login');
     await tester.pumpWidget(const SizedBox());
     await _pump(tester, const Duration(seconds: 1));
   });

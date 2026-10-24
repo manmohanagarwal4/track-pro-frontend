@@ -54,9 +54,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         ),
       );
     }
-    final theme = Theme.of(context);
     final tones = context.tones;
-    final bg = theme.scaffoldBackgroundColor;
+    final bg = tones.groundBase;
     final top = MediaQuery.paddingOf(context).top;
     final points = [for (final p in trip.points) p.position];
     final stats = recompute(trip);

@@ -294,7 +294,7 @@ class AlertCard extends StatelessWidget {
 Future<void> showAlertDetail(BuildContext context, TrackerAlert alert) => showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: context.tones.groundBase,
       builder: (_) => _AlertDetail(alert: alert),
     );
 
@@ -371,8 +371,8 @@ class _AlertDetailState extends ConsumerState<_AlertDetail> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  theme.scaffoldBackgroundColor.withValues(alpha: 0),
-                                  theme.scaffoldBackgroundColor,
+                                  context.tones.groundBase.withValues(alpha: 0),
+                                  context.tones.groundBase,
                                 ],
                               ),
                             ),

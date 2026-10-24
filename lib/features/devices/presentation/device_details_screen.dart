@@ -155,7 +155,6 @@ class _MapHeaderState extends ConsumerState<_MapHeader> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tones = context.tones;
-    final bg = theme.scaffoldBackgroundColor;
     final v = widget.view;
     final pos = v.position;
     final loc = v.device.location;
@@ -168,8 +167,17 @@ class _MapHeaderState extends ConsumerState<_MapHeader> {
       height: 270,
       child: Stack(
         children: [
+          // The map dissolves into the page's backdrop at its bottom edge.
           Positioned.fill(
-            child: pos == null
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (r) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.white, Colors.white, Color(0x00FFFFFF)],
+                stops: [0, 0.74, 1],
+              ).createShader(r),
+              child: pos == null
                 ? ColoredBox(
                     color: tones.neutral900,
                     child: Center(
@@ -197,22 +205,6 @@ class _MapHeaderState extends ConsumerState<_MapHeader> {
                         RouteLayers(points: trail, color: StatusStyle.of(v.status), showEndpoints: false, width: 4),
                     ],
                   ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 70,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [bg.withValues(alpha: 0), bg],
-                  ),
-                ),
-              ),
             ),
           ),
           if (loc != null)
@@ -701,7 +693,7 @@ class _EmergencyBanner extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [tones.critBg, Color.lerp(tones.critBg, theme.scaffoldBackgroundColor, 0.55)!],
+          colors: [tones.critBg, Color.lerp(tones.critBg, context.tones.groundBase, 0.55)!],
         ),
       ),
       child: Column(

@@ -77,7 +77,7 @@ class _AssignVehicleSheetState extends ConsumerState<_AssignVehicleSheet> {
                         subtitle: Text(
                           v.driver == null ? '${v.registration ?? v.id} · No driver' : '${v.registration ?? v.id} · ${v.driver!.name}',
                         ),
-                        trailing: current ? const Pill(label: 'Current', color: AppColors.iris) : null,
+                        trailing: current ? const Pill(label: 'Current', color: AppColors.crimson) : null,
                         onTap: current || _busy
                             ? null
                             : () async {

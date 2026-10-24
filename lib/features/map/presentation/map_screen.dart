@@ -123,7 +123,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         : null;
     final theme = Theme.of(context);
     final tones = context.tones;
-    final ground = theme.scaffoldBackgroundColor;
+    final ground = context.tones.groundBase;
     final top = MediaQuery.paddingOf(context).top;
 
     if (!viewsAsync.hasValue) {

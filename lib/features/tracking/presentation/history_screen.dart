@@ -208,7 +208,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tones = context.tones;
-    final ground = theme.scaffoldBackgroundColor;
+    final ground = context.tones.groundBase;
     final top = MediaQuery.paddingOf(context).top;
     final unit = ref.watch(settingsProvider.select((s) => s.unit));
     final points = [for (final p in _pts) p.position];

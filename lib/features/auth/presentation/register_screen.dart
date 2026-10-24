@@ -131,7 +131,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     onPressed: _busy ? null : _submit,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
-                      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                     ),
                     child: _busy
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))

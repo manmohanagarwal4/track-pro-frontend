@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/headline_reveal.dart';
+import '../../../core/motion/press_scale.dart';
+import '../../../core/motion/reveal.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
@@ -74,7 +78,7 @@ class _DashboardBody extends ConsumerWidget {
       SummaryTile(
         label: 'Total Devices',
         value: counts.total,
-        color: AppColors.iris,
+        color: AppColors.crimson,
         onTap: () => _openDevices(context, ref, StatusFilter.all),
       ),
       SummaryTile(
@@ -209,14 +213,19 @@ class _Header extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${Fmt.greeting(clock.now())}, ${user?.firstName ?? ''}',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500, letterSpacing: -0.4),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                HeadlineReveal(
+                  child: Text(
+                    '${Fmt.greeting(clock.now())}, ${user?.firstName ?? ''}',
+                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.6),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Row(
+                Reveal(
+                  delay: const Duration(milliseconds: 500),
+                  offset: 8,
+                  child: Row(
                   children: [
                     Icon(ok ? AppIcons.success : AppIcons.warning, size: 14, color: ok ? tones.ok : tones.warn),
                     const SizedBox(width: 6),
@@ -232,6 +241,7 @@ class _Header extends ConsumerWidget {
                     ),
                   ],
                 ),
+                ),
               ],
             ),
           ),
@@ -246,11 +256,23 @@ class _Header extends ConsumerWidget {
           ),
           GestureDetector(
             onTap: () => context.push(Routes.profile),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: tones.accent800,
-              child: Text(user?.initials ?? '',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: tones.accent200)),
+            child: PressScale(
+              scale: 0.88,
+              // Crimson gradient ring with a soft glow around the initials.
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  gradient: AppColors.brandGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: AppShadows.glow(Theme.of(context).colorScheme.primary, strength: 0.45),
+                ),
+                child: CircleAvatar(
+                  radius: 17,
+                  backgroundColor: tones.accent900,
+                  child: Text(user?.initials ?? '',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: tones.accent200)),
+                ),
+              ),
             ),
           ),
           AppSpacing.gapSm,

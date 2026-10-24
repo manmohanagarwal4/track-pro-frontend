@@ -144,7 +144,7 @@ class _KindTile extends StatelessWidget {
     final theme = Theme.of(context);
     final tones = context.tones;
     return Material(
-      color: theme.scaffoldBackgroundColor,
+      color: context.tones.groundBase,
       shape: RoundedRectangleBorder(
         borderRadius: AppRadius.mdAll,
         side: BorderSide(color: selected ? theme.colorScheme.primary : AppColors.transparent, width: 1.5),

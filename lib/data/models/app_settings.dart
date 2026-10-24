@@ -4,7 +4,7 @@ import 'enums.dart';
 
 class AppSettings {
   const AppSettings({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = ThemeMode.dark,
     this.unit = DistanceUnit.km,
     this.liveSimulation = true,
     this.simulationSpeed = 1,

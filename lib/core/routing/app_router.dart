@@ -32,6 +32,7 @@ import '../../features/tracking/presentation/history_screen.dart';
 import '../../features/trips/presentation/fleet_trips_screen.dart';
 import '../../features/trips/presentation/trip_detail_screen.dart';
 import '../../features/trips/presentation/trips_screen.dart';
+import '../motion/page_transitions.dart';
 import 'routes.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -42,8 +43,12 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.listen(accountTypeProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
 
-  NoTransitionPage<void> tab(Widget child, GoRouterState s) =>
-      NoTransitionPage(key: s.pageKey, child: child);
+  CustomTransitionPage<void> tab(Widget child, GoRouterState s) => fadeThroughPage(child, s);
+
+  // Explicit MaterialPages so routes use the theme's page transitions:
+  // go_router's MaterialApp auto-detection misses here and would fall back
+  // to NoTransitionPage.
+  MaterialPage<void> page(Widget child, GoRouterState s) => MaterialPage(key: s.pageKey, child: child);
 
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
@@ -64,12 +69,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
-      GoRoute(path: Routes.onboarding, builder: (_, _) => const OnboardingScreen()),
-      GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
-      GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
+      GoRoute(path: Routes.splash, pageBuilder: (_, s) => page(const SplashScreen(), s)),
+      GoRoute(path: Routes.onboarding, pageBuilder: (_, s) => page(const OnboardingScreen(), s)),
+      GoRoute(path: Routes.login, pageBuilder: (_, s) => page(const LoginScreen(), s)),
+      GoRoute(path: Routes.register, pageBuilder: (_, s) => page(const RegisterScreen(), s)),
       ShellRoute(
-        builder: (context, state, child) => AppShell(location: state.uri.path, child: child),
+        pageBuilder: (context, state, child) => page(AppShell(location: state.uri.path, child: child), state),
         routes: [
           GoRoute(path: Routes.home, pageBuilder: (_, s) => tab(const DashboardScreen(), s)),
           GoRoute(path: Routes.devices, pageBuilder: (_, s) => tab(const DevicesScreen(), s)),
@@ -83,72 +88,75 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: Routes.trips, pageBuilder: (_, s) => tab(const FleetTripsScreen(), s)),
         ],
       ),
-      GoRoute(path: Routes.addDevice, builder: (_, _) => const AddDeviceScreen()),
+      GoRoute(path: Routes.addDevice, pageBuilder: (_, s) => page(const AddDeviceScreen(), s)),
       GoRoute(
         path: '/device/:id',
-        builder: (_, s) => DeviceDetailsScreen(deviceId: s.pathParameters['id']!),
+        pageBuilder: (_, s) => page(DeviceDetailsScreen(deviceId: s.pathParameters['id']!), s),
         routes: [
           GoRoute(
             path: 'history',
-            builder: (_, s) => HistoryScreen(deviceId: s.pathParameters['id']!),
+            pageBuilder: (_, s) => page(HistoryScreen(deviceId: s.pathParameters['id']!), s),
           ),
           GoRoute(
             path: 'trips',
-            builder: (_, s) => TripsScreen(deviceId: s.pathParameters['id']!),
+            pageBuilder: (_, s) => page(TripsScreen(deviceId: s.pathParameters['id']!), s),
             routes: [
               GoRoute(
                 path: ':tripId',
-                builder: (_, s) => TripDetailScreen(
-                  deviceId: s.pathParameters['id']!,
-                  trip: s.extra is Trip ? s.extra! as Trip : null,
+                pageBuilder: (_, s) => page(
+                  TripDetailScreen(
+                    deviceId: s.pathParameters['id']!,
+                    trip: s.extra is Trip ? s.extra! as Trip : null,
+                  ),
+                  s,
                 ),
               ),
             ],
           ),
           GoRoute(
             path: 'settings',
-            builder: (_, s) => DeviceSettingsScreen(deviceId: s.pathParameters['id']!),
+            pageBuilder: (_, s) => page(DeviceSettingsScreen(deviceId: s.pathParameters['id']!), s),
           ),
           GoRoute(
             path: 'share',
-            builder: (_, s) => ShareScreen(deviceId: s.pathParameters['id']!),
+            pageBuilder: (_, s) => page(ShareScreen(deviceId: s.pathParameters['id']!), s),
           ),
         ],
       ),
       GoRoute(
         path: Routes.geofences,
-        builder: (_, _) => const GeofencesScreen(),
+        pageBuilder: (_, s) => page(const GeofencesScreen(), s),
         routes: [
           GoRoute(
             path: 'new',
-            builder: (_, s) => GeofenceEditorScreen(deviceId: s.uri.queryParameters['device']),
+            pageBuilder: (_, s) => page(GeofenceEditorScreen(deviceId: s.uri.queryParameters['device']), s),
           ),
           GoRoute(
             path: ':gid',
-            builder: (_, s) => GeofenceEditorScreen(geofenceId: s.pathParameters['gid']),
+            pageBuilder: (_, s) => page(GeofenceEditorScreen(geofenceId: s.pathParameters['gid']), s),
           ),
         ],
       ),
-      GoRoute(path: Routes.notifications, builder: (_, _) => const NotificationsScreen()),
+      GoRoute(path: Routes.notifications, pageBuilder: (_, s) => page(const NotificationsScreen(), s)),
       GoRoute(
         path: Routes.drivers,
-        builder: (_, _) => const DriversScreen(),
+        pageBuilder: (_, s) => page(const DriversScreen(), s),
         routes: [
           GoRoute(
             path: ':did',
-            builder: (_, s) => DriverDetailScreen(driverId: s.pathParameters['did']!),
+            pageBuilder: (_, s) => page(DriverDetailScreen(driverId: s.pathParameters['did']!), s),
           ),
         ],
       ),
-      GoRoute(path: Routes.assets, builder: (_, _) => const AssetsScreen()),
-      GoRoute(path: Routes.profile, builder: (_, _) => const ProfileScreen()),
+      GoRoute(path: Routes.assets, pageBuilder: (_, s) => page(const AssetsScreen(), s)),
+      GoRoute(path: Routes.profile, pageBuilder: (_, s) => page(const ProfileScreen(), s)),
       GoRoute(
         path: Routes.settings,
-        builder: (_, _) => const SettingsScreen(),
+        pageBuilder: (_, s) => page(const SettingsScreen(), s),
         routes: [
           GoRoute(
             path: ':section',
-            builder: (_, s) => SettingsSectionScreen(section: s.pathParameters['section']!),
+            pageBuilder: (_, s) => page(SettingsSectionScreen(section: s.pathParameters['section']!), s),
           ),
         ],
       ),

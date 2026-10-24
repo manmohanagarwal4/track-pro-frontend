@@ -7,10 +7,14 @@ import '../theme/app_colors.dart';
 /// TrackPro mark: an accent-outlined rounded square holding a pin with
 /// signal arcs.
 class TrackProMark extends StatelessWidget {
-  const TrackProMark({super.key, this.size = 48, this.rounded = true});
+  const TrackProMark({super.key, this.size = 48, this.rounded = true, this.outline, this.glyph});
 
   final double size;
   final bool rounded;
+
+  /// Overrides for use on a colored ground; default to the theme accent.
+  final Color? outline;
+  final Color? glyph;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -19,8 +23,8 @@ class TrackProMark extends StatelessWidget {
         child: CustomPaint(
           painter: TrackProMarkPainter(
             rounded: rounded,
-            outline: Theme.of(context).colorScheme.primary,
-            glyph: AppTones.of(context).accent300,
+            outline: outline ?? Theme.of(context).colorScheme.primary,
+            glyph: glyph ?? AppTones.of(context).accent300,
           ),
         ),
       );
@@ -29,8 +33,8 @@ class TrackProMark extends StatelessWidget {
 class TrackProMarkPainter extends CustomPainter {
   const TrackProMarkPainter({
     this.rounded = true,
-    this.outline = AppColors.irisLight,
-    this.glyph = AppColors.signalLight,
+    this.outline = AppColors.crimsonLight,
+    this.glyph = AppColors.roseLight,
   });
 
   final bool rounded;

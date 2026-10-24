@@ -195,7 +195,7 @@ class _GeofenceEditorScreenState extends ConsumerState<GeofenceEditorScreen>
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [theme.scaffoldBackgroundColor, theme.scaffoldBackgroundColor.withAlpha(0)],
+                        colors: [context.tones.groundBase, context.tones.groundBase.withAlpha(0)],
                       ),
                     ),
                   ),

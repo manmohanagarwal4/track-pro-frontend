@@ -156,7 +156,7 @@ class _AssetPickerSheet extends ConsumerWidget {
                                   ),
                                   AppSpacing.gapSm,
                                   if (a.id == currentAssetId)
-                                    const Pill(label: 'Current', color: AppColors.iris)
+                                    const Pill(label: 'Current', color: AppColors.crimson)
                                   else
                                     Text(
                                       trackerByAsset[a.id] ?? 'No tracker',

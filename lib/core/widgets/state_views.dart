@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_icons.dart';
+import '../theme/app_shadows.dart';
 import '../theme/app_spacing.dart';
 
 class LoadingView extends StatelessWidget {
@@ -57,10 +59,11 @@ class EmptyView extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(20),
+                gradient: AppColors.brandGradient,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: AppShadows.glow(theme.colorScheme.primary, strength: 0.8),
               ),
-              child: Icon(icon, size: 32, color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8)),
+              child: Icon(icon, size: 32, color: AppColors.white),
             ),
             AppSpacing.gapLg,
             Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
@@ -182,8 +185,7 @@ class Skeleton extends StatefulWidget {
 }
 
 class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat(reverse: true);
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
 
   @override
   void dispose() {
@@ -193,13 +195,22 @@ class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHigh;
-    return FadeTransition(
-      opacity: Tween(begin: 0.45, end: 1.0).animate(_c),
-      child: Container(
+    final tones = context.tones;
+    final base = tones.neutral800;
+    final sheen = Color.lerp(base, tones.accent700, 0.35)!;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) => Container(
         height: widget.height,
         width: widget.width,
-        decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(widget.radius)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.radius),
+          gradient: LinearGradient(
+            begin: Alignment(-1 + 2 * _c.value - 0.6, 0),
+            end: Alignment(-1 + 2 * _c.value + 0.6, 0),
+            colors: [base, sheen, base],
+          ),
+        ),
       ),
     );
   }
@@ -230,7 +241,11 @@ class SkeletonList extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: Container(
               padding: AppSpacing.card,
-              decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: AppRadius.lgAll),
+              decoration: BoxDecoration(
+                gradient: context.tones.glassGradient,
+                borderRadius: AppRadius.lgAll,
+                border: Border.all(color: context.tones.glassBorder),
+              ),
               child: const Row(
                 children: [
                   Skeleton(height: 44, width: 44, radius: 14),

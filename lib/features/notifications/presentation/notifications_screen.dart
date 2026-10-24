@@ -26,8 +26,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   static Color _color(NotificationCategory c) => switch (c) {
         NotificationCategory.alerts => AppColors.emergency,
-        NotificationCategory.system => AppColors.iris,
-        NotificationCategory.devices => AppColors.signal,
+        NotificationCategory.system => AppColors.crimson,
+        NotificationCategory.devices => AppColors.rose,
         NotificationCategory.trips => AppColors.stationary,
       };
 
